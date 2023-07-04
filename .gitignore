@@ -1,0 +1,7 @@
+# Compiled
+*.o
+/readbits-test
+/test.txt
+
+# Other
+/.vscode
