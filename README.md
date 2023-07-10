@@ -15,15 +15,17 @@ To use, copy src/readbits.h & src/readbits.c into your project.
 |***uint8_t***|**byte**|Current byte being read|
 |***int***|**bitOffset**|Current bit bitOffset within byte|
 |***char***|**canRead**|Non-zero if data is able to be read|
+|***char***|**msbFirst**|Non-zero if bits are read left-to-right|
 
 ---
 
 ## Functions
 
 ---
-### *BitReader\** **newBitReader**(filename)
+### *BitReader\** **newBitReader**(filename, msbFirst)
 Creates and returns a pointer to a new BitReader object
  - *char\** **filename** - Name of file to read bits from.
+ - *char* **msbFirst** - If 0 start reading from least-significant bit (right), otherwise read from most-significant (left)
 ##### It is recommended you test bitReader.canRead == 1 before using.
 
 ---

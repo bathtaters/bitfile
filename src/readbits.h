@@ -22,10 +22,12 @@ typedef struct BitReader {
     int bitOffset;
     /* Non-zero if this.file is currently open */
     char canRead;
+    /* Read starting from left (1) or right (0) */
+    char msbFirst;
 } BitReader;
 
 /* Creates a new BitReader object (result.canRead == 1 if successful) */
-BitReader* newBitReader(char *filename);
+BitReader* newBitReader(char *filename, char msbFirst);
 /* Closes file & frees BitReader memory */
 void freeBitReader(BitReader* br);
 /* Get the next [bitCount] bits as a uint64 (Result must fit into uint64) */
