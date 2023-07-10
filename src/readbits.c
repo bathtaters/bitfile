@@ -2,6 +2,7 @@
 
 uint8_t getBit(BitReader* br);
 int getByte(BitReader* br);
+int alignByte(BitReader* br);
 
 uint64_t getBits(BitReader* br, char bitCount)
 {
@@ -21,18 +22,17 @@ uint64_t getBits(BitReader* br, char bitCount)
     
     for (char resOffset = 0; resOffset < bitCount; resOffset++)
     {
-        /* Align memory byte to cursor */
-        while (br->bitOffset >= BYTE_LEN)
-        {
-            if (getByte(br)) { return result; } /* Return if EOF reached. */
-            br->bitOffset -= BYTE_LEN;
-        }
+        if (alignByte(br)) { return result; }
 
         /* Read bit by bit */
-        result |= getBit(br) << resOffset;
+        uint64_t newBit = getBit(br);
+        if (br->msbFirst) { result = (result << 1) | newBit; }
+        else { result |= newBit << resOffset; }
 
         // printf("\t> rCount: %03d, rOffset: %03d, bOffset: %d, byteVal: %03u, result: ",bitCount,resOffset,br->bitOffset,br->byte);printbin(result,bitCount);printf("\n");
     }
+
+    alignByte(br);
     return result;
 }
 
@@ -52,7 +52,7 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
     }
 
     /* Allow bitCount to overflow */
-    while (bitOffset > BYTE_LEN)
+    while (bitOffset >= BYTE_LEN)
     {
         bitOffset -= BYTE_LEN;
         byteOffset++;
@@ -62,8 +62,12 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
         bitOffset += BYTE_LEN;
         byteOffset--;
     }
+    
+    // printf("\t> SEEK FROM: %ld [%d]; (%ld, %d, %d)",ftell(br->file),br->bitOffset,byteOffset,bitOffset,whence);
 
     fseek(br->file, byteOffset, whence);
+
+    // printf("; SEEK TO: %ld [%d]\n",ftell(br->file),bitOffset);
 
     /* Update BitReader parameters */
     if (getByte(br)) { return br; }
@@ -97,6 +101,17 @@ void freeBitReader(BitReader* br)
 
 
 /* --- BR UTILITIES --- */
+
+/* Align memory byte to bitOffset */
+int alignByte(BitReader* br)
+{
+    while (br->bitOffset >= BYTE_LEN)
+    {
+        if (getByte(br)) { return 1; } /* Return if EOF reached. */
+        br->bitOffset -= BYTE_LEN;
+    }
+    return 0;
+}
 
 /* Reads next byte of br.file into br.byte.
     - OnSuccess: return 0
