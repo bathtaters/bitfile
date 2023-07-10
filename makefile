@@ -1,6 +1,6 @@
 IDIR =./include
 CC=gcc
-CFLAGS=-I $(IDIR)
+CFLAGS=-g -Wall -I $(IDIR)
 OUTDIR=./
 
 ODIR=src
