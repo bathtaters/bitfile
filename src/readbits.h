@@ -27,10 +27,10 @@ typedef struct BitReader {
     char msbFirst;
 } BitReader;
 
-/* Creates a new BitReader object (result.canRead == 1 if successful) */
-BitReader* newBitReader(char *filename, char msbFirst);
+/* Creates aa new BitReader object (result.canRead == 1 if successful) */
+BitReader newBitReader(char *filename, char msbFirst);
 /* Closes file & frees BitReader memory */
-void freeBitReader(BitReader* br);
+void freeBitReader(BitReader br);
 /* Get the next [bitCount] bits as byte array (Array size = ceil of bitCount/8) */
 uint8_t* getBits(BitReader* br, int bitCount);
 /* Seek to the given byte/bit offset (whence = SEEK_[CUR|END|SET]) */

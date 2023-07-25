@@ -76,22 +76,25 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
 }
 
 
-BitReader* newBitReader(char *filename, char msbFirst)
+BitReader newBitReader(char *filename, char msbFirst)
 {
-    BitReader* br = (BitReader*)calloc(1, sizeof(BitReader));
+    BitReader br;
 
-    br->file = fopen(filename, "rb");
-    br->canRead = br->file != NULL;
-    if (br->canRead) { getByte(br); } /* Ingest first byte */
-    br->msbFirst = msbFirst;
+    br.file = fopen(filename, "rb");
+    br.byte = 0;
+    br.bitOffset = 0;
+    br.canRead = br.file != NULL;
+    br.msbFirst = msbFirst;
+
+    if (br.canRead) getByte(&br); /* Ingest first byte */
     return br;
 }
 
 
-void freeBitReader(BitReader* br)
+void freeBitReader(BitReader br)
 {
-    if (br->file != NULL) { fclose(br->file); }
-    free(br);
+    if (br.file != NULL) fclose(br.file);
+    br.file = NULL;
 }
 
 

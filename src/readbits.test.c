@@ -68,7 +68,7 @@ int testCount = 1;
 /* Run BitReader on the given file, outputting result */
 int runTest(char* test, char* filename, char msbFirst, int counts[], int size, int width, uint8_t results[size][width])
 {
-    BitReader* br = newBitReader(filename, msbFirst);
+    BitReader br = newBitReader(filename, msbFirst);
 
     printf("%02d) %s Test (%s first) - File: '%s'\n", testCount++, test, msbFirst ? "MSB" : "LSB", filename);
     for (int i = 0; i < size; i++)
