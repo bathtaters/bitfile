@@ -12,10 +12,10 @@ uint8_t* getBits(BitReader* br, int bitCount)
 
     if (!br->canRead)
     {
-        printf("Error: Attempting to read a closed file.\n");
+        fprintf(stderr, "Error: Attempting to read a closed file.\n");
         return result;
     }
-    
+
     /* Result array is always big-endian */
     int byteOffset = -1;
     for (char bitOffset = 0; bitOffset < bitCount; bitOffset++)
@@ -28,8 +28,6 @@ uint8_t* getBits(BitReader* br, int bitCount)
         uint8_t newBit = getBit(br);
         if (br->msbFirst) result[byteOffset] = (result[byteOffset] << 1) | newBit;
         else result[byteOffset] |= newBit << (bitOffset % BYTE_LEN);
-
-        // printf("\t> rOffset: %03d / %03d, bOffset: %d / %d, byteOffset: %02d / %02d, bitVal: %d, byteVal: %03u, result: ",bitOffset,bitCount,br->bitOffset,BYTE_LEN,byteOffset,byteCount,newBit,br->byte);printbin(result,bitCount);printf("\n");
     }
 
     return result;
@@ -40,15 +38,12 @@ int seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence)
 {
     if (br->file == NULL)
     {
-        printf("Error: Attempting to seek a closed file.\n");
+        fprintf(stderr, "Error: Attempting to seek a closed file.\n");
         return -1;
     }
 
     /* Include current bitOffset if seeking from current position */
-    if (whence == SEEK_CUR)
-    {
-        bitOffset += br->bitOffset;
-    }
+    if (whence == SEEK_CUR) bitOffset += br->bitOffset;
 
     /* Allow bitCount to overflow */
     while (bitOffset >= BYTE_LEN)
@@ -62,21 +57,17 @@ int seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence)
         byteOffset--;
     }
     
-    // printf("\t> SEEK FROM: %ld [%d]; (%ld, %d, %d)",ftell(br->file),br->bitOffset,byteOffset,bitOffset,whence);
-    
     fseek(br->file, byteOffset, whence);
-
-    // printf("; SEEK TO: %ld [%d]\n",ftell(br->file),bitOffset);
 
     /* Update BitReader parameters */
     if (getByte(br)) return 1;
     br->bitOffset = bitOffset;
-    br->canRead = 1;
+    br->canRead = true;
     return 0;
 }
 
 
-BitReader newBitReader(char *filename, char msbFirst)
+BitReader newBitReader(char *filename, bool msbFirst)
 {
     BitReader br;
 
@@ -110,7 +101,7 @@ int alignByte(BitReader* br)
 {
     while (br->bitOffset >= BYTE_LEN)
     {
-        if (getByte(br)) { return 1; } /* Return if EOF reached. */
+        if (getByte(br)) return 1; /* Return if EOF reached. */
         br->bitOffset -= BYTE_LEN;
     }
     return 0;
@@ -118,14 +109,14 @@ int alignByte(BitReader* br)
 
 /* Reads next byte of br.file into br.byte.
     - OnSuccess: return 0
-    - OnFailure: return 1 and br.canRead = 0 */
+    - OnFailure: return 1 and br.canRead = false */
 int getByte(BitReader* br)
 {
     int nextByte = getc(br->file);
     if (nextByte == EOF)
     {
-        printf("Warning: Reached end of file.\n");
-        br->canRead = 0;
+        fprintf(stderr, "Warning: Reached end of file.\n");
+        br->canRead = false;
         return 1;
     }
 
@@ -137,16 +128,14 @@ int getByte(BitReader* br)
 uint8_t getBit(BitReader* br)
 {
     char offset = br->bitOffset++;
-    if (br->msbFirst)
-    {
-        offset = BYTE_LEN - 1 - offset;
-    }
+    if (br->msbFirst) offset = BYTE_LEN - 1 - offset;
+
     return !!(br->byte & (1 << offset));
 }
 
 /* Print value as binary - For debugging/testing */
 #define INT64BYTES 8
-void printbin(uint8_t* bindata, char bitWidth)
+void printbin(uint8_t* bindata, int bitWidth)
 {
     const int byteCount = CEIL_DIV(bitWidth, BYTE_LEN);
 
@@ -171,7 +160,7 @@ void printbin(uint8_t* bindata, char bitWidth)
 }
 
 /* Convert array between endianess using bitWidth */
-void swap_bytes(uint8_t* val, int bitWidth)
+void swapbytes(uint8_t* bindata, int bitWidth)
 {
     int offsetFactor = CEIL_DIV(bitWidth, BYTE_LEN);
     int half = offsetFactor / 2;
@@ -182,8 +171,8 @@ void swap_bytes(uint8_t* val, int bitWidth)
     {
         int b = offsetFactor - a;
 
-        uint8_t temp = val[a];
-        val[a] = val[b];
-        val[b] = temp;
+        uint8_t temp = bindata[a];
+        bindata[a] = bindata[b];
+        bindata[b] = temp;
     }
 }

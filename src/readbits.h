@@ -22,13 +22,13 @@ typedef struct BitReader {
     /* Current bit bitOffset within this.byte */
     int bitOffset;
     /* Non-zero if this.file is currently open */
-    char canRead;
+    bool canRead;
     /* Read starting from left (1) or right (0) */
-    char msbFirst;
+    bool msbFirst;
 } BitReader;
 
 /* Creates aa new BitReader object (result.canRead == 1 if successful) */
-BitReader newBitReader(char *filename, char msbFirst);
+BitReader newBitReader(char *filename, bool msbFirst);
 /* Closes file & frees BitReader memory */
 void freeBitReader(BitReader br);
 /* Get the next [bitCount] bits as byte array (Array size = ceil of bitCount/8) */
@@ -37,8 +37,8 @@ uint8_t* getBits(BitReader* br, int bitCount);
 int seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence);
 
 /* Utility to print Binary data for testing */
-void printbin(uint8_t* bindata, char bitWidth);
+void printbin(uint8_t* bindata, int bitWidth);
 /* Utility to flip array between endianess */
-void swap_bytes(uint8_t* val, int bitWidth);
+void swapbytes(uint8_t* bindata, int bitWidth);
 
 #endif
