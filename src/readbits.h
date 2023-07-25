@@ -38,5 +38,7 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
 
 /* Utility to print Binary data for testing */
 void printbin(uint8_t* bindata, char bitWidth);
+/* Utility to flip array between endianess */
+void swap_bytes(uint8_t* val, int bitWidth);
 
 #endif

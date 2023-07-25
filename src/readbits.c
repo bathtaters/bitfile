@@ -166,9 +166,21 @@ void printbin(uint8_t* bindata, char bitWidth)
         printf("%c", bindata[j / BYTE_LEN] & (0x1 << (j % BYTE_LEN)) ? '1' : '0');
     }
 }
+
+/* Convert array between endianess using bitWidth */
+void swap_bytes(uint8_t* val, int bitWidth)
+{
+    int offsetFactor = CEIL_DIV(bitWidth, BYTE_LEN);
+    int half = offsetFactor / 2;
+    offsetFactor--; /* 0-index for offset math */
+    
+    /* Go through 50% of array and swap all mirrored bytes (a & b) */
+    for (int a = 0; a < half; a++)
     {
-        if (j != bitWidth && j % BYTE_LEN == 0) printf(" ");
-        if (j % BYTE_LEN == 0) PRINT_BIG_ENDIAN ? byteOffset++ : byteOffset--;
-        printf("%c", bindata[byteOffset] & (0x1 << ((j - 1) % BYTE_LEN)) ? '1' : '0');
+        int b = offsetFactor - a;
+
+        uint8_t temp = val[a];
+        val[a] = val[b];
+        val[b] = temp;
     }
 }
