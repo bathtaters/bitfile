@@ -5,12 +5,13 @@ READ BITS by bathtaters
 #ifndef READ_BITS_H
 #define READ_BITS_H
 
+#include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 #define BYTE_LEN 8
-#define BIT_LIMIT (int)(sizeof(uint64_t) * BYTE_LEN)
+#define CEIL_DIV(x,y) (1 + (((x) - 1) / (y)))
 
 /* Object to be passed to BitReader functions (Interacting directly with this will cause undefined behavior!) */
 typedef struct BitReader {
@@ -30,12 +31,12 @@ typedef struct BitReader {
 BitReader* newBitReader(char *filename, char msbFirst);
 /* Closes file & frees BitReader memory */
 void freeBitReader(BitReader* br);
-/* Get the next [bitCount] bits as a uint64 (Result must fit into uint64) */
-uint64_t getBits(BitReader* br, char bitCount);
+/* Get the next [bitCount] bits as byte array (Array size = ceil of bitCount/8) */
+uint8_t* getBits(BitReader* br, int bitCount);
 /* Seek to the given byte/bit offset (whence = SEEK_[CUR|END|SET]) */
 BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence);
 
 /* Utility to print Binary data for testing */
-void printbin(uint64_t bindata, char bitWidth);
+void printbin(uint8_t* bindata, char bitWidth);
 
 #endif

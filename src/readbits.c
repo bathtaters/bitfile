@@ -4,35 +4,34 @@ uint8_t getBit(BitReader* br);
 int getByte(BitReader* br);
 int alignByte(BitReader* br);
 
-uint64_t getBits(BitReader* br, char bitCount)
+
+uint8_t* getBits(BitReader* br, int bitCount)
 {
-    uint64_t result = 0;
+    const int byteCount = CEIL_DIV(bitCount, BYTE_LEN);
+    uint8_t* result = calloc(byteCount, sizeof(uint8_t));
 
     if (!br->canRead)
     {
         printf("Error: Attempting to read a closed file.\n");
         return result;
     }
-    if (bitCount > BIT_LIMIT)
-    {
-        printf("Error: Attempting to read too many bits: %d. Returning last %d bits.\n", bitCount, BIT_LIMIT);
-        seekBits(br, 0, bitCount - BIT_LIMIT, SEEK_CUR);
-        return getBits(br, BIT_LIMIT);
-    }
     
-    for (char resOffset = 0; resOffset < bitCount; resOffset++)
+    /* Result array is always big-endian */
+    int byteOffset = -1;
+    for (char bitOffset = 0; bitOffset < bitCount; bitOffset++)
     {
-        if (alignByte(br)) { return result; }
+        /* Increment byte reader & writer */
+        if (alignByte(br)) return result;
+        if (bitOffset % BYTE_LEN == 0) byteOffset++;
 
         /* Read bit by bit */
-        uint64_t newBit = getBit(br);
-        if (br->msbFirst) { result = (result << 1) | newBit; }
-        else { result |= newBit << resOffset; }
+        uint8_t newBit = getBit(br);
+        if (br->msbFirst) result[byteOffset] = (result[byteOffset] << 1) | newBit;
+        else result[byteOffset] |= newBit << (bitOffset % BYTE_LEN);
 
-        // printf("\t> rCount: %03d, rOffset: %03d, bOffset: %d, byteVal: %03u, result: ",bitCount,resOffset,br->bitOffset,br->byte);printbin(result,bitCount);printf("\n");
+        // printf("\t> rOffset: %03d / %03d, bOffset: %d / %d, byteOffset: %02d / %02d, bitVal: %d, byteVal: %03u, result: ",bitOffset,bitCount,br->bitOffset,BYTE_LEN,byteOffset,byteCount,newBit,br->byte);printbin(result,bitCount);printf("\n");
     }
 
-    alignByte(br);
     return result;
 }
 
@@ -64,7 +63,7 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
     }
     
     // printf("\t> SEEK FROM: %ld [%d]; (%ld, %d, %d)",ftell(br->file),br->bitOffset,byteOffset,bitOffset,whence);
-
+    
     fseek(br->file, byteOffset, whence);
 
     // printf("; SEEK TO: %ld [%d]\n",ftell(br->file),bitOffset);
@@ -142,17 +141,34 @@ uint8_t getBit(BitReader* br)
     return !!(br->byte & (1 << offset));
 }
 
-/* Print value as binary (Big-Endian) - For debugging */
-void printbin(uint64_t bindata, char bitWidth)
+/* Print value as binary - For debugging/testing */
+#define INT64BYTES 8
+void printbin(uint8_t* bindata, char bitWidth)
 {
-    printf("%-8llu ", bindata);
+    const int byteCount = CEIL_DIV(bitWidth, BYTE_LEN);
 
-    const int spaces = bitWidth % BYTE_LEN;
-    for (int i = BYTE_LEN; spaces && i > spaces; i--) { printf(" "); }
-
-    for (int j = bitWidth; j > 0; j--)
+    /* Print numeric value (w/ ">" if overflowing 64-bits) */
+    uint64_t num = 0;
+    for (int i = 0; i < byteCount && i < INT64BYTES; i++)
     {
-        if (j != bitWidth && j % BYTE_LEN == 0) { printf(" "); }
-        printf("%c", bindata & (0x1 << (j - 1)) ? '1' : '0');
+        num |= bindata[i] << (i * BYTE_LEN);
+    }
+    printf("%c%8llu,", byteCount > 8 ? '>' : ' ', num); /* Add a > if > 64-bit */
+
+    /* Print hex value */
+    for (int i = 0; i < byteCount; i++) printf(" %02X", bindata[i]);
+    printf(", ");
+
+    /* Print binary value */
+    for (int j = 0; j < bitWidth; j++)
+    {
+        if (j && j % BYTE_LEN == 0) printf(" ");
+        printf("%c", bindata[j / BYTE_LEN] & (0x1 << (j % BYTE_LEN)) ? '1' : '0');
+    }
+}
+    {
+        if (j != bitWidth && j % BYTE_LEN == 0) printf(" ");
+        if (j % BYTE_LEN == 0) PRINT_BIG_ENDIAN ? byteOffset++ : byteOffset--;
+        printf("%c", bindata[byteOffset] & (0x1 << ((j - 1) % BYTE_LEN)) ? '1' : '0');
     }
 }
