@@ -1,4 +1,4 @@
-# readbits
+# readbits v1.0
 C Library to help read files bit-by-bit.
 
 To use, copy src/readbits.h & src/readbits.c into your project.
@@ -7,45 +7,46 @@ To use, copy src/readbits.h & src/readbits.c into your project.
 
 ## Data Types
 
----
 ### *struct* **BitReader**
 |Type|Name|Description|
 |--|--|--|
 |***FILE***|**file**|File object to read from|
 |***uint8_t***|**byte**|Current byte being read|
 |***int***|**bitOffset**|Current bit bitOffset within byte|
-|***char***|**canRead**|Non-zero if data is able to be read|
-|***char***|**msbFirst**|Non-zero if bits are read left-to-right|
+|***bool***|**canRead**|True if data is available to be read from file|
+|***bool***|**msbFirst**|True if bits will be read left-to-right|
 
 ---
 
 ## Functions
 
 ---
-### *BitReader\** **newBitReader**(filename, msbFirst)
-Creates and returns a pointer to a new BitReader object
+### *BitReader* **newBitReader**(filename, msbFirst)
+Creates and returns a new BitReader struct
  - *char\** **filename** - Name of file to read bits from.
- - *char* **msbFirst** - If 0 start reading from least-significant bit (right), otherwise read from most-significant (left)
-##### It is recommended you test bitReader.canRead == 1 before using.
+ - *bool* **msbFirst** - If false start reading from least-significant bit (right), otherwise read from most-significant (left)
+##### If there is an error, bitReader.canRead will be set to false.
 
 ---
 ### *void* **freeBitReader**(bitReader)
-Close file & free **bitReader** memory.
- - *BitReader\** **bitReader** - Object to free.
-##### ***Must be called to avoid memory leak.***
+Close file & free any memory allocated by **bitReader** struct.
+ - *BitReader* **bitReader** - Object to free.
+##### Must be called to avoid memory leak.
 
 ---
-### *uint64_t* **getBits**(bitReader, bitCount)
-Return the next **bitCount** bits as a *uint64*.
+### *uint8_t\** **getBits**(bitReader, bitCount)
+Return the next **bitCount** bits as an array of *uint8*s.
  - *BitReader\** **bitReader** - Object to retrieve bits from.
- - *char* **bitCount** - Number of bits to retrieve.
-##### If **bitCount** is > 64, only last 64 bits will be returned and a warning displayed.
-##### If **bitReader.canRead** == 0, will return 0 and display a message.
-##### If end of file reached, will return current result and display a message.
+ - *int* **bitCount** - Number of bits to retrieve.
+#### NOTE: Return pointer must be free'd.
+##### Size of return array will always be bitCount / 8 rounded up.
+##### Endianess of array will reflect endianess of file.
+##### If **bitReader.canRead** is false, will return array of 0s and display a message in stderr.
+##### If end of file reached, will pad out remainder of array with 0s and display a message in stderr.
 
 ---
-### *BitReader\** **seekBits**(bitReader, byteOffset, bitOffset, whence)
-Seek **bitReader** to the given **byteOffset** and **bitOffest** in the file.
+### *int* **seekBits**(bitReader, byteOffset, bitOffset, whence)
+Seek **bitReader** to the given **byteOffset** and **bitOffest** in the file, returning a status code.
  - *BitReader\** **bitReader** - Object to seek within.
  - *long int* **byteOffset** - Byte offset from **whence** to seek to.
  - *int* **bitOffset** - Bit offset within byte to seek to.
@@ -53,14 +54,21 @@ Seek **bitReader** to the given **byteOffset** and **bitOffest** in the file.
     - ***SEEK_CUR***: Offset from current byte/bit position.
     - ***SEEK_SET***: Offset from start of file.
     - ***SEEK_END***: Offset from end of file (Expects negative offsets).
+ - ***Return Code***
+    - **0** – Success
+    - **1** – EOF reached
+    - **-1** – File not open
 ##### If end of file reached/passed, will set **bitReader.canRead** = 0 and display a message.
-##### Accepts negative offsets, and allows > 8 for bitOffset
+##### Accepts negative offsets, and will carry to bytes if bitOffset > 8
 ---
 
-## Misc.
+## Misc. Functions
 
 Also includes:
-### *void* **printbin**(*uint64_t* **bindata**, *char* **bitWidth**)
+### *void* **swapbytes**(*uint8_t\** **bindata**, *int* **bitWidth**)
+Utility to swap endianess of array (**bindata**) based on its **bitWidth**.
+
+### *void* **printbin**(*uint8_t\** **bindata**, *int* **bitWidth**)
 Utility to print **bindata** as binary number **bitWidth** digits long.
 
 ---
