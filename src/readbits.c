@@ -36,12 +36,12 @@ uint8_t* getBits(BitReader* br, int bitCount)
 }
 
 
-BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence)
+int seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence)
 {
     if (br->file == NULL)
     {
         printf("Error: Attempting to seek a closed file.\n");
-        return br;
+        return -1;
     }
 
     /* Include current bitOffset if seeking from current position */
@@ -69,10 +69,10 @@ BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whenc
     // printf("; SEEK TO: %ld [%d]\n",ftell(br->file),bitOffset);
 
     /* Update BitReader parameters */
-    if (getByte(br)) { return br; }
+    if (getByte(br)) return 1;
     br->bitOffset = bitOffset;
     br->canRead = 1;
-    return br;
+    return 0;
 }
 
 

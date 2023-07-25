@@ -33,8 +33,8 @@ BitReader newBitReader(char *filename, char msbFirst);
 void freeBitReader(BitReader br);
 /* Get the next [bitCount] bits as byte array (Array size = ceil of bitCount/8) */
 uint8_t* getBits(BitReader* br, int bitCount);
-/* Seek to the given byte/bit offset (whence = SEEK_[CUR|END|SET]) */
-BitReader* seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence);
+/* Seek to the given byte/bit offset (whence = SEEK_[CUR|END|SET]), returns 0 on success */
+int seekBits(BitReader* br, long int byteOffset, int bitOffset, int whence);
 
 /* Utility to print Binary data for testing */
 void printbin(uint8_t* bindata, char bitWidth);
