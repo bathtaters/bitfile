@@ -1,81 +1,149 @@
-# readbits v1.0
-C Library to help read files bit-by-bit.
-
-To use, copy src/readbits.h & src/readbits.c into your project.
+# bitfile v1.0
+C Library to help read & write files at the bit level.
+Extends the binary file read/write operations
 
 ---
 
 ## Data Types
 
-### *struct* **BitReader**
+### *struct* **BITFILE**
 |Type|Name|Description|
 |--|--|--|
-|***FILE***|**file**|File object to read from|
-|***uint8_t***|**byte**|Current byte being read|
-|***int***|**bitOffset**|Current bit bitOffset within byte|
-|***bool***|**canRead**|True if data is available to be read from file|
-|***bool***|**msbFirst**|True if bits will be read left-to-right|
+|***FILE***|**_fileobj**|File object to read from|
+|***int***|**_curbyte**|Current byte being read (or EOF)|
+|***int8_t***|**_bitoffset**|Offset of current bit within byte|
+|***bool***|**_msb**|True if bits will be read left-to-right|
 
 ---
 
 ## Functions
 
----
-### *BitReader* **newBitReader**(filename, msbFirst)
-Creates and returns a new BitReader struct
- - *char\** **filename** - Name of file to read bits from.
- - *bool* **msbFirst** - If false start reading from least-significant bit (right), otherwise read from most-significant (left)
-##### If there is an error, bitReader.canRead will be set to false.
+### *BITFILE\** **bfopen**(filename, access_mode, msb_first)
+Opens the file pointed to by filename using the given mode & bit order.
+#### Parameters
+ - ***const char\**** **filename**: name of the file when present in the same directory as the source file. Otherwise, full path.
+ - ***const char\**** **access_mode**: Specifies for what operation the file is being opened *(Accepted: r,w,a,r+,w+,a+)*.
+ - ***bool*** **msb_first**:
+   - **True** Read/write bits from left to right (Most significant bit first).
+   - **False** Read/write bits right to left (Least significant bit first).
+#### Return Value
+ - If the file is opened successfully, returns a pointer to it.
+ - If the file is not opened, then returns NULL.
 
 ---
-### *void* **freeBitReader**(bitReader)
-Close file & free any memory allocated by **bitReader** struct.
- - *BitReader* **bitReader** - Object to free.
-##### Must be called to avoid memory leak.
+
+### *int* **bfclose**(bitfile)
+Flushes all buffers and closes the file.
+#### Parameters
+ - ***BITFILE\**** **bitfile**: pointer to file returned from bfopen.
+#### Return Value
+ - If the file is closed successfully, returns 0.
+ - If there is an error closing the file, returns EOF.
 
 ---
-### *uint8_t\** **getBits**(bitReader, bitCount)
-Return the next **bitCount** bits as an array of *uint8*s.
- - *BitReader\** **bitReader** - Object to retrieve bits from.
- - *int* **bitCount** - Number of bits to retrieve.
-#### NOTE: Return pointer must be free'd.
-##### Size of return array will always be bitCount / 8 rounded up.
-##### Endianess of array will reflect endianess of file.
-##### If **bitReader.canRead** is false, will return array of 0s and display a message in stderr.
-##### If end of file reached, will pad out remainder of array with 0s and display a message in stderr.
+
+### *uint64_t* **bfread**(save_to_ptr, number_of_bits, bitfile)
+Reads data from the given file into the array pointed to by ptr (Array size must be at least bitCount/8).
+#### Parameters
+ - ***void\**** **save_to_ptr**: Pointer to block of memory to store read bits.
+ - ***uint64_t*** **number_of_bits**: The number of bits to read.
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the input stream.
+#### Return Value
+ - The number of bits successfully read from **bitfile**. This should equal **number_of_bits** unless an error or EOF was encountered.
 
 ---
-### *int* **seekBits**(bitReader, byteOffset, bitOffset, whence)
-Seek **bitReader** to the given **byteOffset** and **bitOffest** in the file, returning a status code.
- - *BitReader\** **bitReader** - Object to seek within.
+
+### *int* **bfseek**(bitfile, byte_offset, bit_offset, whence)
+Sets the file position of the stream to the offsets from the whence position (Accepts negative offsets and bit_offset > 8).
+#### Parameters
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE* to seek within.
  - *long int* **byteOffset** - Byte offset from **whence** to seek to.
- - *int* **bitOffset** - Bit offset within byte to seek to.
- - *int* **whence** - Must be equal to one of:
-    - ***SEEK_CUR***: Offset from current byte/bit position.
-    - ***SEEK_SET***: Offset from start of file.
-    - ***SEEK_END***: Offset from end of file (Expects negative offsets).
- - ***Return Code***
-    - **0** – Success
-    - **1** – EOF reached
-    - **-1** – File not open
-##### If end of file reached/passed, will set **bitReader.canRead** = 0 and display a message.
-##### Accepts negative offsets, and will carry to bytes if bitOffset > 8
----
-
-## Misc. Functions
-
-Also includes:
-### *void* **swapbytes**(*uint8_t\** **bindata**, *int* **bitWidth**)
-Utility to swap endianess of array (**bindata**) based on its **bitWidth**.
-
-### *void* **printbin**(*uint8_t\** **bindata**, *int* **bitWidth**)
-Utility to print **bindata** as binary number **bitWidth** digits long.
+ - *uint64_t* **bitOffset** - Bit offset within byte to seek to.
+ - *int* **whence**:
+    - ***SEEK_CUR*** Start from current byte/bit position.
+    - ***SEEK_SET*** Start from start of file.
+    - ***SEEK_END*** Start from end of file (Expects negative offsets).
+#### Return Code
+ -  **0**: Success
+ -  **Other**: Failed to seek to requested position
 
 ---
-### For developers
+
+### *void* **swapendian**(**bin_data**, **number_of_bits**)
+Swap endianess of **bin_data** of length **number_of_bits**.
+#### Parameters
+ - ***void\**** **bin_data**: Pointer to block of binary memory to modify.
+ - ***uint64_t*** **number_of_bits**: The size in bits of bin_data.
+
+---
+
+### *void* **printbin**(**bin_data**, **number_of_bits**)
+Print binary value of **bin_data** of length **number_of_bits**.
+ - ***void\**** **bin_data**: Pointer to block of binary memory to print.
+ - ***uint64_t*** **number_of_bits**: The size in bits of bin_data.
+
+---
+
+## Constants & Macros
+
+ - **BYTE_LEN**: Length of 1 byte in bits (8).
+ - **CEIL_DIV**(*int* ***x***, *int* ***y***): Result of *x* / *y* rounded up to the nearest *int*.
+
+---
+
+## For developers
 
 Compile & run tests:
 
 ```bash
-make && make clean && ./readbits-test
+make
+make clean # Optional: Remove temp files
+./bitfile-test
 ```
+
+---
+
+## To Do
+
+### Add Bit-Version of Functions
+
+ -	size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
+Writes data from the array pointed to by ptr to the given stream.
+
+ -	void clearerr(FILE *stream)
+Clears the end-of-file and error indicators for the given stream.
+
+ -	int feof(FILE *stream)
+Tests the end-of-file indicator for the given stream.
+
+ -	int ferror(FILE *stream)
+Tests the error indicator for the given stream.
+
+ -	int fflush(FILE *stream)
+Flushes the output buffer of a stream.
+
+ -	int fgetpos(FILE *stream, fpos_t *pos)
+Gets the current file position of the stream and writes it to pos.
+
+ -	FILE *freopen(const char *filename, const char *mode, FILE *stream)
+Associates a new filename with the given open stream and same time closing the old file in stream.
+
+ -	int fsetpos(FILE *stream, const fpos_t *pos)
+Sets the file position of the given stream to the given position. The argument pos is a position given by the function fgetpos.
+
+ -	long int ftell(FILE *stream)
+Returns the current file position of the given stream.
+
+ -	void rewind(FILE *stream)
+Sets the file position to the beginning of the file of the given stream.
+
+ -	void setbuf(FILE *stream, char *buffer)
+Defines how a stream should be buffered.
+
+ -	int setvbuf(FILE *stream, char *buffer, int mode, size_t size)
+Another function to define how a stream should be buffered.
+
+ -	FILE *tmpfile(void)
+Creates a temporary file in binary update mode (wb+).
+
+---

@@ -1,6 +1,6 @@
 # Compiled
 *.o
-/readbits-test
+/bitfile-test
 /test.txt
 
 # Other

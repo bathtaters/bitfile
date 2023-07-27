@@ -6,17 +6,17 @@ OUTDIR=./
 ODIR=src
 TESTFILE=./src/test.txt
 
-_DEPS = readbits.h 
+_DEPS = bitfile.h 
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = readbits.o readbits.test.o
+_OBJ = bitfile.o bitfile.test.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 
 $(ODIR)/%.o: %.c $(DEPS)
 	$(CC) -c -o $@ $< $(CFLAGS)
 
-$(OUTDIR)readbits-test: $(OBJ)
+$(OUTDIR)bitfile-test: $(OBJ)
 	$(CC) -o $@ $^ $(CFLAGS) $(LIBS)
 	cp $(TESTFILE) ./
 
