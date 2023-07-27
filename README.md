@@ -2,7 +2,7 @@
 C Library to help read & write files at the bit level.
 Extends the binary file read/write operations
 
-For simple usage, copy bitfile.c & bitfile.h into your project.
+For simple usage, copy `bitfile.c` & `bitfile.h` from the `src` directory into your project.
 
 ---
 
