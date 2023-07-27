@@ -4,18 +4,6 @@ Extends the binary file read/write operations
 
 ---
 
-## Data Types
-
-### *struct* **BITFILE**
-|Type|Name|Description|
-|--|--|--|
-|***FILE***|**_fileobj**|File object to read from|
-|***int***|**_curbyte**|Current byte being read (or EOF)|
-|***int8_t***|**_bitoffset**|Offset of current bit within byte|
-|***bool***|**_msb**|True if bits will be read left-to-right|
-
----
-
 ## Functions
 
 ### *BITFILE\** **bfopen**(filename, access_mode, msb_first)
@@ -86,8 +74,28 @@ Print binary value of **bin_data** of length **number_of_bits**.
 
 ## Constants & Macros
 
- - **BYTE_LEN**: Length of 1 byte in bits (8).
  - **CEIL_DIV**(*int* ***x***, *int* ***y***): Result of *x* / *y* rounded up to the nearest *int*.
+ - **PRINT_BYTE_SPACES**: True will add spaces between bytes when printing binary w/ printbin
+ - **BYTE_LEN**: Length of 1 byte in bits (8).
+ - **ACCESS_MODE_LEN**: Max size of file access_mode (+ 1 for terminating char)
+
+---
+
+## Data Types
+
+### *struct* **BITFILE**
+Object representing bit stream
+(Should not be modified directly!)
+
+|Type|Name|Description|
+|--|--|--|
+|***FILE***|**_fileobj**|File object to read from|
+|***int***|**_curbyte**|Current byte being read (or EOF)|
+|***int8_t***|**_bitoffset**|Offset of current bit within byte|
+|***bool***|**_msb**|True if bits will be read left-to-right|
+
+### **byte_t**
+Type used to store raw bytes
 
 ---
 
