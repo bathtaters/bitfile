@@ -51,11 +51,15 @@ bsize_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile)
 
     for (int byteIdx = -1; readCount < number_of_bits; readCount++)
     {
-        /* Increment byte reader & writer */
-        if (alignByte(bitfile)) return readCount;
-        if (readCount % BYTE_LEN == 0) byteIdx++;
+        /* Increment byte reader & writer -- Zero-out array & quit on EOF */
+        if (alignByte(bitfile))
+        {
+            while (++byteIdx * BYTE_LEN < number_of_bits) result[byteIdx] = 0x0;
+            return readCount;
+        }
+        if (readCount % BYTE_LEN == 0) result[++byteIdx] = 0x0;
 
-        /* Read bit by bit */
+        /* Read bit by bit into result array */
         byte_t newBit = getBit(bitfile);
         if (bitfile->_msb) result[byteIdx] = (result[byteIdx] << 1) | newBit;
         else result[byteIdx] |= newBit << (readCount % BYTE_LEN);
