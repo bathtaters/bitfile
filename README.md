@@ -6,12 +6,12 @@ For simple usage, copy `bitfile.c` & `bitfile.h` from the `src` directory into y
 
 ---
 
-## Functions
+## Open/Close Functions
 
 ### *BITFILE\** **bfopen**(filename, access_mode, msb_first)
 Opens the file pointed to by filename using the given mode & bit order.
 #### Parameters
- - ***const char\**** **filename**: name of the file when present in the same directory as the source file. Otherwise, full path.
+ - ***const char\**** **filename**: name/path of new file
  - ***const char\**** **access_mode**: Specifies for what operation the file is being opened *(Accepted: r,w,a,r+,w+,a+)*.
  - ***bool*** **msb_first**:
    - **True** Read/write bits from left to right (Most significant bit first).
@@ -32,7 +32,33 @@ Flushes all buffers and closes the file.
 
 ---
 
-### *uint64_t* **bfread**(save_to_ptr, number_of_bits, bitfile)
+### BITFILE* bfreopen(filename, access_mode, msb_first, bitfile);
+Associates a new filename with the given bitfile while closing the old file in stream.
+#### Parameters
+ - ***const char\**** **filename**: name/path of new file
+ - ***const char\**** **access_mode**: Specifies for what operation the file is being opened *(Accepted: r,w,a,r+,w+,a+)*.
+ - ***bool*** **msb_first**:
+   - **True** Read/write bits from left to right (Most significant bit first).
+   - **False** Read/write bits right to left (Least significant bit first).
+ - *BITFILE\** **bitfile** - Pointer to exisiting (non-closed) *BITFILE*
+#### Return Value
+ - If the file is re-opened successfully, returns a pointer to it.
+ - If the file is not opened, then returns NULL.
+
+---
+
+### BITFILE* tmpbitfile(msb_first);
+Creates a temporary file in update mode (wb+).
+#### Parameters
+ - *const bool* **msb_first** - True = prefer reading left-to-right, False = right-to-left
+#### Return Code
+ - Pointer to new BITFILE object
+
+---
+
+## Read/Write Functions
+
+### *bsize_t* **bfread**(save_to_ptr, number_of_bits, bitfile)
 Reads data from the given file into the array pointed to by ptr (Array size must be at least bitCount/8).
 #### Parameters
  - ***void\**** **save_to_ptr**: Pointer to block of memory to store read bits.
@@ -43,21 +69,61 @@ Reads data from the given file into the array pointed to by ptr (Array size must
 
 ---
 
-### *int* **bfseek**(bitfile, byte_offset, bit_offset, whence)
+## Position Functions
+
+### *int* **bfseek**(bitfile, offset, whence)
 Sets the file position of the stream to the offsets from the whence position (Accepts negative offsets and bit_offset > 8).
 #### Parameters
- - *BITFILE\** **bitfile** - Pointer to the *BITFILE* to seek within.
- - *long int* **byteOffset** - Byte offset from **whence** to seek to.
- - *uint64_t* **bitOffset** - Bit offset within byte to seek to.
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
+ - *bpos_t* **offset** - Bit offset from **whence** to seek to
  - *int* **whence**:
-    - ***SEEK_CUR*** Start from current byte/bit position.
-    - ***SEEK_SET*** Start from start of file.
-    - ***SEEK_END*** Start from end of file (Expects negative offsets).
+    - ***SEEK_CUR*** Start from current byte/bit position
+    - ***SEEK_SET*** Start from start of file
+    - ***SEEK_END*** Start from end of file (Expects negative offsets)
 #### Return Code
  -  **0**: Success
  -  **Other**: Failed to seek to requested position
 
 ---
+
+### *bpos_t* **bftell**(bitfile);
+Returns the current bit position of the given bit file.
+#### Parameters
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
+#### Return
+ - Current bit offset from the start of the given bit file
+
+---
+
+### *void* **bfrewind**(bitfile);
+Sets the position to the beginning of the bit file.
+#### Parameters
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
+
+---
+
+### *int* **bfgetpos**(bitfile, pos);
+Gets the current position of the bit file and writes it to pos.
+#### Parameters
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
+ - *bfpos_t\** **pos** - Pointer to position object to set to current bitfile position
+#### Return Code
+ - Same as fgetpos
+
+---
+
+### *int* **bfsetpos**(BITFILE *bitfile, const bfpos_t *pos)
+Sets the file position of the given bit file to the given position.
+(Use with output of bfgetpos)
+#### Parameters
+ - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
+ - *const bfpos_t\** **pos** - Pointer to position object to update current bitfile to
+#### Return Code
+ - Same as fsetpos
+
+---
+
+## Utility Functions
 
 ### *void* **swapendian**(**bin_data**, **number_of_bits**)
 Swap endianess of **bin_data** of length **number_of_bits**.
@@ -77,9 +143,10 @@ Print binary value of **bin_data** of length **number_of_bits**.
 ## Constants & Macros
 
  - **CEIL_DIV**(*int* ***x***, *int* ***y***): Result of *x* / *y* rounded up to the nearest *int*.
- - **PRINT_BYTE_SPACES**: True will add spaces between bytes when printing binary w/ printbin
+ - **PRINT_BYTE_SPACES**: True will add spaces between bytes when printing binary w/ printbin.
  - **BYTE_LEN**: Length of 1 byte in bits (8).
- - **ACCESS_MODE_LEN**: Max size of file access_mode (+ 1 for terminating char)
+ - **ACCESS_MODE_LEN**: Max size of file access_mode (+ 1 for terminating char).
+ - **TMP_FILE_ACCESS**: Access mode for temp file (*"wb+"*).
 
 ---
 
@@ -96,8 +163,20 @@ Object representing bit stream
 |***int8_t***|**_bitoffset**|Offset of current bit within byte|
 |***bool***|**_msb**|True if bits will be read left-to-right|
 
+### **bsize_t**
+Size in bits of a bit file
+ - Format String: %**BSIZE_STR**
+
+### **bpos_t**
+Bit position within a bit file
+ - Format String: %**BPOS_STR**
+
+### **bfpos_t** { *fpos_t* byte, *bpos_t* bit }
+Full position within a file
+
 ### **byte_t**
 Type used to store raw bytes
+ - Format String: %**BYTE_STR**
 
 ---
 
@@ -120,40 +199,22 @@ make clean # Optional: Remove temp files
  -	size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
 Writes data from the array pointed to by ptr to the given stream.
 
+ -	int fflush(FILE *stream)
+Flushes the output buffer of a stream.
+
  -	void clearerr(FILE *stream)
 Clears the end-of-file and error indicators for the given stream.
-
- -	int feof(FILE *stream)
-Tests the end-of-file indicator for the given stream.
 
  -	int ferror(FILE *stream)
 Tests the error indicator for the given stream.
 
- -	int fflush(FILE *stream)
-Flushes the output buffer of a stream.
-
- -	int fgetpos(FILE *stream, fpos_t *pos)
-Gets the current file position of the stream and writes it to pos.
-
- -	FILE *freopen(const char *filename, const char *mode, FILE *stream)
-Associates a new filename with the given open stream and same time closing the old file in stream.
-
- -	int fsetpos(FILE *stream, const fpos_t *pos)
-Sets the file position of the given stream to the given position. The argument pos is a position given by the function fgetpos.
-
- -	long int ftell(FILE *stream)
-Returns the current file position of the given stream.
-
- -	void rewind(FILE *stream)
-Sets the file position to the beginning of the file of the given stream.
+ -	int feof(FILE *stream)
+Tests the end-of-file indicator for the given stream.
 
  -	void setbuf(FILE *stream, char *buffer)
 Defines how a stream should be buffered.
 
  -	int setvbuf(FILE *stream, char *buffer, int mode, size_t size)
 Another function to define how a stream should be buffered.
-
- -	FILE *tmpfile(void)
-Creates a temporary file in binary update mode (wb+).
 
 ---
