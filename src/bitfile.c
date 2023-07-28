@@ -3,6 +3,7 @@
 uint8_t getBit(BITFILE* bitfile);
 int getByte(BITFILE* bitfile);
 int alignByte(BITFILE* bitfile);
+void bfreset(BITFILE* bitfile, bool msb_first);
 int copyByteAccessMode(const char* basic_access, char* byte_access);
 
 
@@ -11,26 +12,15 @@ int copyByteAccessMode(const char* basic_access, char* byte_access);
 BITFILE* bfopen(const char* filename, const char* access_mode, bool msb_first)
 {
     char access[ACCESS_MODE_LEN];
-    if (copyByteAccessMode(access_mode, access))
-    {
-        fprintf(stderr, "ERROR: Invalid file access mode: %s\n", access_mode);
-        return NULL;
-    }
+    if (copyByteAccessMode(access_mode, access)) return NULL;
 
     FILE* fileobj = fopen(filename, access);
-    if (fileobj == NULL)
-    {
-        fprintf(stderr, "ERROR: File unable to be opened for '%s': %s\n", access, filename);
-        return NULL;
-    }
+    if (fileobj == NULL) return NULL;
 
     BITFILE* bitfile = malloc(sizeof(BITFILE));
 
     bitfile->_fileobj = fileobj;
-    bitfile->_currbyte = 0x0;
-    bitfile->_bitoffset = BYTE_LEN; /* Force read on next operation */
-    bitfile->_msb = msb_first;
-
+    bfreset(bitfile, msb_first);
     return bitfile;
 }
 
@@ -39,6 +29,25 @@ int bfclose(BITFILE* bitfile)
     int result = fclose(bitfile->_fileobj);
     free(bitfile);
     return result;
+}
+
+BITFILE* bfreopen(const char *filename, const char *access_mode, bool msb_first, BITFILE *bitfile)
+{
+    char access[ACCESS_MODE_LEN];
+    if (copyByteAccessMode(access_mode, access)) return NULL;
+
+    bitfile->_fileobj = freopen(filename, access, bitfile->_fileobj);
+    if (bitfile->_fileobj == NULL) return NULL;
+
+    bfreset(bitfile, msb_first);
+    return bitfile;
+}
+
+BITFILE* tmpbitfile(const bool msb_first)
+{
+    char filename[L_tmpnam];
+    if (!tmpnam(filename)) return NULL;
+    return bfopen(filename, TMP_FILE_ACCESS, msb_first);
 }
 
 
@@ -97,6 +106,30 @@ int bfseek(BITFILE* bitfile, bpos_t offset, int whence)
     if (!getByte(bitfile)) return 0;
     bitfile->_bitoffset = 0;
     return 1;
+}
+
+bpos_t bftell(BITFILE *bitfile)
+{
+    return (bpos_t)ftell(bitfile->_fileobj) * (bpos_t)(BYTE_LEN) + bitfile->_bitoffset;
+}
+
+void bfrewind(BITFILE *bitfile)
+{
+    rewind(bitfile->_fileobj);
+    bfreset(bitfile, bitfile->_msb);
+}
+
+int bfgetpos(BITFILE *bitfile, bfpos_t *pos)
+{
+    pos->bit = (bpos_t)bitfile->_bitoffset;
+    return fgetpos(bitfile->_fileobj, &pos->byte);
+}
+
+int bfsetpos(BITFILE *bitfile, const bfpos_t *pos)
+{
+    if (pos->bit < 0 || pos->bit >= BYTE_LEN) return 1;
+    bitfile->_bitoffset = (int8_t)pos->bit;
+    return fsetpos(bitfile->_fileobj, pos->byte);
 }
 
 
@@ -188,6 +221,14 @@ byte_t getBit(BITFILE* bitfile)
     return !!(bitfile->_currbyte & (1 << offset));
 }
 
+/* Set bitfile parameters to initial values (Doesn't modify _fileobj) */
+void bfreset(BITFILE* bitfile, bool msb_first)
+{
+    bitfile->_currbyte = 0x0;
+    bitfile->_bitoffset = BYTE_LEN; /* Force read on next operation */
+    bitfile->_msb = msb_first;
+}
+
 /* Store access mode w/ appended 'b' in byte_access
     - Expects: r,w,a,r+,w+,a+,rb,wb,ab,rb+,wb+,ab+,r+b,w+b,a+b
     - Success: return 0
@@ -195,12 +236,20 @@ byte_t getBit(BITFILE* bitfile)
 int copyByteAccessMode(const char* basic_access, char* byte_access)
 {
     int len = strlen(basic_access);
-    if (len < 1 || len > VALID_ACCESS_CHARS_OUTER_SZ) return 1;
+    if (len < 1 || len > VALID_ACCESS_CHARS_OUTER_SZ)
+    {
+        fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
+        return 1;
+    }
 
     bool has_b = false;
     for (int i = 0; i < len; i++)
     {
         if (!isIn(basic_access[i], valid_access_chars[i], VALID_ACCESS_CHARS_INNER_SZ))
+        {
+            fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
+            return 1;
+        }
 
         if (basic_access[i] == 'b') has_b = true;
         byte_access[i] = basic_access[i];
