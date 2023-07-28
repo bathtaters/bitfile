@@ -44,9 +44,9 @@ int bfclose(BITFILE* bitfile)
 
 /* --- READ/WRITE FUNCTIONS --- */
 
-uint64_t bfread(void* save_to_ptr, uint64_t number_of_bits, BITFILE* bitfile)
+bsize_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
-    uint64_t readCount = 0;
+    bsize_t readCount = 0;
     byte_t* result = save_to_ptr;
 
     for (int byteIdx = -1; readCount < number_of_bits; readCount++)
@@ -67,37 +67,27 @@ uint64_t bfread(void* save_to_ptr, uint64_t number_of_bits, BITFILE* bitfile)
 
 /* --- POSITION FUNCTIONS --- */
 
-int bfseek(BITFILE* bitfile, long int byte_offset, int64_t bit_offset, int whence)
+int bfseek(BITFILE* bitfile, bfpos_t offset, int whence)
 {
-    if (whence == SEEK_CUR)
-    {
-        /* Catch unset _bitoffset */
-        if (bitfile->_bitoffset == -1)
-        {
-            fprintf(stderr, "ERROR: Cannot seek from current file position with no current position.\n");
-            return -1;
-        }
-
-        /* Include current bitOffset if seeking from current position */
-        bit_offset += bitfile->_bitoffset;
-    }
+    /* Include current bitOffset if seeking from current position */
+    if (whence == SEEK_CUR) offset.bit += bitfile->_bitoffset;
 
     /* Allow bitCount to overflow */
-    while (bit_offset >= BYTE_LEN)
+    while (offset.bit >= BYTE_LEN)
     {
-        bit_offset -= BYTE_LEN;
-        byte_offset++;
+        offset.bit -= BYTE_LEN;
+        offset.byte++;
     }
-    while (bit_offset < 0)
+    while (offset.bit < 0)
     {
-        bit_offset += BYTE_LEN;
-        byte_offset--;
+        offset.bit += BYTE_LEN;
+        offset.byte--;
     }
     
-    fseek(bitfile->_fileobj, byte_offset, whence);
+    fseek(bitfile->_fileobj, offset.byte, whence);
 
     /* Update BITFILE parameters */
-    bitfile->_bitoffset = bit_offset;
+    bitfile->_bitoffset = offset.bit;
     if (!getByte(bitfile)) return 0;
     bitfile->_bitoffset = 0;
     return 1;
@@ -107,7 +97,7 @@ int bfseek(BITFILE* bitfile, long int byte_offset, int64_t bit_offset, int whenc
 
 /* --- UTILITIES --- */
 
-void swapendian(void* bin_data, uint64_t number_of_bits)
+void swapendian(void* bin_data, bsize_t number_of_bits)
 {
     byte_t* data_ptr = (byte_t *)bin_data;
 
@@ -125,7 +115,7 @@ void swapendian(void* bin_data, uint64_t number_of_bits)
     }
 }
 
-void printbin(const void* bin_data, uint64_t number_of_bits)
+void printbin(const void* bin_data, bsize_t number_of_bits)
 {
     byte_t* data_ptr = (byte_t *)bin_data;
 

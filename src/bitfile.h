@@ -30,6 +30,24 @@ READ BITS by bathtaters
 
 /* Type used to store raw byte */
 typedef uint8_t byte_t;
+/* Format string for raw byte */
+#define BYTE_STR "d"
+
+/* Size in bits of a file */
+typedef uint64_t bsize_t;
+/* Format string for size in bits of a file */
+#define BSIZE_STR "llu"
+
+/* Bit position within a file */
+typedef int64_t bpos_t;
+/* Format string for bit position within a file */
+#define BPOS_STR "lls"
+
+/* Full position within a file */
+typedef struct bfpos_t {
+    fpos_t byte;
+    bpos_t bit;
+} bfpos_t;
 
 /* Data object for bitfile functions
    (DO NOT modify this directly!) */
@@ -59,21 +77,21 @@ int bfclose(BITFILE* bitfile);
 
 /* Reads data from the given file into the array pointed to by ptr
     - save_to_ptr size must be at least bitCount/8 */
-uint64_t bfread(void* save_to_ptr, uint64_t number_of_bits, BITFILE* bitfile);
+uint64_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile);
 
 /* --- POSITION FUNCTIONS --- */
 
 /* Sets the file position of the stream to the offsets from the whence position
     - Accepts negative offsets and bit_offset > 8
     - Whence: SEEK_CUR, SEEK_SET, SEEK_END */
-int bfseek(BITFILE* bitfile, long int byte_offset, int64_t bit_offset, int whence);
+int bfseek(BITFILE* bitfile, bfpos_t offset, int whence);
 
 /* -- UTILITY FUNCTIONS -- */
 
 /* Swap endianess of bin_data of length number_of_bits */
-void swapendian(void* bin_data, uint64_t number_of_bits);
+void swapendian(void* bin_data, bsize_t number_of_bits);
 /* Print binary value of bin_data of length number_of_bits */
-void printbin(const void* bin_data, uint64_t number_of_bits);
+void printbin(const void* bin_data, bsize_t number_of_bits);
 
 
 #endif

@@ -8,39 +8,39 @@
 /* Test files */
 #define TEST_FILE_1 "test.txt"
 
-int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, int width, uint8_t expected[size][width], int offset, int whence);
+int readTest(char* test, char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence);
 
 /* Run all tests */
 int main()
 {
-    int a[] = {8,8,8,8};
-    uint8_t arm[][1] = {{116}, {117}, {118}, {119}};
-    uint8_t arl[][1] = {{116}, {117}, {118}, {119}};
+    bsize_t a[] = {8,8,8,8};
+    byte_t arm[][1] = {{116}, {117}, {118}, {119}};
+    byte_t arl[][1] = {{116}, {117}, {118}, {119}};
     if (readTest("Byte", TEST_FILE_1, false, a, 4, 1, arl, 0, 0)) return 1;
     if (readTest("Byte", TEST_FILE_1,  true, a, 4, 1, arm, 0, 0)) return 1;
 
-    int b[] = {6,4,3,6,3,4,5,1};
-    uint8_t brl[][1] = {{52},{5},{5},{51},{6},{13},{29},{0}};
-    uint8_t brm[][1] = {{29},{1},{6},{43},{5},{ 9},{27},{1}};
+    bsize_t b[] = {6,4,3,6,3,4,5,1};
+    byte_t brl[][1] = {{52},{5},{5},{51},{6},{13},{29},{0}};
+    byte_t brm[][1] = {{29},{1},{6},{43},{5},{ 9},{27},{1}};
     if (readTest("Partial Byte", TEST_FILE_1, false, b, 8, 1, brl, 0, 0)) return 1;
     if (readTest("Partial Byte", TEST_FILE_1,  true, b, 8, 1, brm, 0, 0)) return 1;
 
-    int c[] = {12,17,3};
-    uint8_t crl[][3] = {{116, 5, 0}, {103, 119, 1}, {3, 0, 0}};
-    uint8_t crm[][3] = {{116, 7, 0}, { 87, 103, 0}, {7, 0, 0}};
+    bsize_t c[] = {12,17,3};
+    byte_t crl[][3] = {{116, 5, 0}, {103, 119, 1}, {3, 0, 0}};
+    byte_t crm[][3] = {{116, 7, 0}, { 87, 103, 0}, {7, 0, 0}};
     if (readTest("Multi-Byte", TEST_FILE_1, false, c, 3, 3, crl, 0, 0)) return 1;
     if (readTest("Multi-Byte", TEST_FILE_1,  true, c, 3, 3, crm, 0, 0)) return 1;
 
-    int d[] = {16};
-    uint8_t drs[][2] = {{118, 119}};
-    uint8_t drc[][2] = {{116, 117}};
-    uint8_t dre[][2] = {{117, 118}};
+    bsize_t d[] = {16};
+    byte_t drs[][2] = {{118, 119}};
+    byte_t drc[][2] = {{116, 117}};
+    byte_t dre[][2] = {{117, 118}};
     if (readTest("Seek Set", TEST_FILE_1, false, d, 1, 2, drs, 8 *  2, SEEK_SET)) return 1;
     if (readTest("Seek Cur", TEST_FILE_1, false, d, 1, 2, drc, 8 * -1, SEEK_CUR)) return 1;
     if (readTest("Seek End", TEST_FILE_1, false, d, 1, 2, dre, 8 * -3, SEEK_END)) return 1;
 
-    int e[] = {66};
-    uint8_t erl[][9] = {{ 116, 117, 118, 119, 0, 0, 0, 0, 0 }};
+    bsize_t e[] = {66};
+    byte_t erl[][9] = {{ 116, 117, 118, 119, 0, 0, 0, 0, 0 }};
     if (readTest(">64 bit", TEST_FILE_1, false, e, 1, 9, erl, 0, 0)) return 1;
     if (VERBOSE)
     {
@@ -51,8 +51,8 @@ int main()
         printf("    w/ bit-count mismatch 32 of 66.\n");
     }
 
-    int f[] = {8,8,64,2};
-    uint8_t frm[][8] = {{116}, {117}, {118, 119, 0, 0, 0, 0, 0, 0}, {0}};
+    bsize_t f[] = {8,8,64,2};
+    byte_t frm[][8] = {{116}, {117}, {118, 119, 0, 0, 0, 0, 0, 0}, {0}};
     if (readTest("Read After EOF", TEST_FILE_1, true, f, 4, 8, frm, 0, 0)) return 1;
     if (VERBOSE)
     {
@@ -64,8 +64,8 @@ int main()
         printf("    w/ bit-count mismatches 16 of 64, 0 of 2.\n");
     }
 
-    int g[] = {8,8};
-    uint8_t grl[][1] = {{0},{0}};
+    bsize_t g[] = {8,8};
+    byte_t grl[][1] = {{0},{0}};
     if (readTest("Missing File", "cancel.txt", false, g, 2, 1, grl, 0, 0) != -1) return 1;
     if (VERBOSE)
     {
@@ -89,13 +89,13 @@ int main()
 /* -- TEST IMPLEMENTATION -- */
 
 
-void printNumber(byte_t* bin_data, int bit_width);
-int arrcmp(uint8_t* a, uint8_t* b, int size);
+void printNumber(byte_t* bin_data, bsize_t bit_width);
+int arrcmp(byte_t* a, byte_t* b, size_t size);
 
 int testCount = 1;
 
 /* Run a read test on the given file, outputting result */
-int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, int width, uint8_t expected[size][width], int offset, int whence)
+int readTest(char* test, char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence)
 {
     printf("%02d) %s Test (%s first) - File: '%s'\n", testCount++, test, msbFirst ? "MSB" : "LSB", filename);
     BITFILE* bitfile = bfopen(filename, "r", msbFirst);
@@ -108,11 +108,11 @@ int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, 
 
     for (int i = 0; i < size; i++)
     {
-        int resultsize = CEIL_DIV(counts[i], BYTE_LEN);
+        size_t resultsize = CEIL_DIV(counts[i], BYTE_LEN);
         byte_t result[resultsize];
-        for (int j = 0; j < resultsize; j++) result[j] = 0;
+        for (size_t j = 0; j < resultsize; j++) result[j] = 0;
 
-        if (offset) bfseek(bitfile, 0, offset, whence);
+        if (offset) bfseek(bitfile, (bfpos_t){0,offset}, whence);
 
         int count = (int)bfread(result, counts[i], bitfile);
 
@@ -120,7 +120,7 @@ int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, 
 
         if (VERBOSE || fails)
         {
-            printf("  %02d [bits: %02d/%02d]: ", i+1, count, counts[i]);
+            printf("  %02d [bits: %02d/%02"BSIZE_STR"]: ", i+1, count, counts[i]);
             printNumber(result, counts[i]);
 
             printf("          Expected: ");
@@ -128,7 +128,7 @@ int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, 
         }
         else if (count != counts[i])
         {
-            printf("  Bit-count mismatch: %d of %d read.\n", count, counts[i]);
+            printf("  Bit-count mismatch: %d of %"BSIZE_STR" read.\n", count, counts[i]);
         }
 
         if (fails)
@@ -145,20 +145,21 @@ int readTest(char* test, char* filename, bool msbFirst, int counts[], int size, 
 }
 
 /* Print number as full int, hex:int bytes, binary */
-void printNumber(byte_t* bin_data, int bit_width)
+#define BIT64 8
+void printNumber(byte_t* bin_data, bsize_t bit_width)
 {
     const int byte_width = CEIL_DIV(bit_width, BYTE_LEN);
 
     /* Print numeric value (w/ ">" if overflowing 64-bits) */
     uint64_t num = 0;
-    for (int i = 0; i < byte_width && i < 8; i++)
+    for (int i = 0; i < byte_width && i < BIT64; i++)
     {
         num |= bin_data[i] << (i * BYTE_LEN);
     }
     printf("%c%8llu,", byte_width > 8 ? '>' : ' ', num);
 
     /* Print hex value */
-    for (int i = 0; i < byte_width; i++) printf(" 0x%02X:%03d", bin_data[i], bin_data[i]);
+    for (int i = 0; i < byte_width; i++) printf(" 0x%02X:%03"BYTE_STR, bin_data[i], bin_data[i]);
     printf(", ");
 
     printbin(bin_data, bit_width);
@@ -166,7 +167,7 @@ void printNumber(byte_t* bin_data, int bit_width)
 }
 
 /* Compare two arrays, returns 0 if equal */
-int arrcmp(uint8_t* a, uint8_t* b, int size)
+int arrcmp(byte_t* a, byte_t* b, size_t size)
 {
     for (int i = 0; i < size; i++)
     {
