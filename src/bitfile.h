@@ -84,7 +84,7 @@ uint64_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile);
 /* Sets the file position of the stream to the offsets from the whence position
     - Accepts negative offsets and bit_offset > 8
     - Whence: SEEK_CUR, SEEK_SET, SEEK_END */
-int bfseek(BITFILE* bitfile, bfpos_t offset, int whence);
+int bfseek(BITFILE* bitfile, bpos_t offset, int whence);
 
 /* -- UTILITY FUNCTIONS -- */
 

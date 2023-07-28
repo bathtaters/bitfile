@@ -111,7 +111,7 @@ int readTest(char* test, char* filename, bool msbFirst, bsize_t counts[], int si
         size_t resultsize = CEIL_DIV(counts[i], BYTE_LEN);
         byte_t result[resultsize];
 
-        if (offset) bfseek(bitfile, (bfpos_t){0,offset}, whence);
+        if (offset) bfseek(bitfile, offset, whence);
 
         int count = (int)bfread(result, counts[i], bitfile);
 

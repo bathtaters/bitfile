@@ -71,27 +71,29 @@ bsize_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile)
 
 /* --- POSITION FUNCTIONS --- */
 
-int bfseek(BITFILE* bitfile, bfpos_t offset, int whence)
+int bfseek(BITFILE* bitfile, bpos_t offset, int whence)
 {
+    fpos_t byte_offset = 0;
+
     /* Include current bitOffset if seeking from current position */
-    if (whence == SEEK_CUR) offset.bit += bitfile->_bitoffset;
+    if (whence == SEEK_CUR) offset += bitfile->_bitoffset;
 
     /* Allow bitCount to overflow */
-    while (offset.bit >= BYTE_LEN)
+    while (offset >= BYTE_LEN)
     {
-        offset.bit -= BYTE_LEN;
-        offset.byte++;
+        offset -= BYTE_LEN;
+        byte_offset++;
     }
-    while (offset.bit < 0)
+    while (offset < 0)
     {
-        offset.bit += BYTE_LEN;
-        offset.byte--;
+        offset += BYTE_LEN;
+        byte_offset--;
     }
     
-    fseek(bitfile->_fileobj, offset.byte, whence);
+    fseek(bitfile->_fileobj, byte_offset, whence);
 
     /* Update BITFILE parameters */
-    bitfile->_bitoffset = offset.bit;
+    bitfile->_bitoffset = offset;
     if (!getByte(bitfile)) return 0;
     bitfile->_bitoffset = 0;
     return 1;
