@@ -17,8 +17,8 @@ Opens the file pointed to by filename using the given mode & bit order.
    - **True** Read/write bits from left to right (Most significant bit first).
    - **False** Read/write bits right to left (Least significant bit first).
 #### Return Value
- - If the file is opened successfully, returns a pointer to it.
- - If the file is not opened, then returns NULL.
+ - ***Pointer to BITFILE struct***: File was opened successfully.
+ - **NULL**: File was unable to be opened.
 
 ---
 
@@ -26,9 +26,9 @@ Opens the file pointed to by filename using the given mode & bit order.
 Flushes all buffers and closes the file.
 #### Parameters
  - ***BITFILE\**** **bitfile**: pointer to file returned from bfopen.
-#### Return Value
- - If the file is closed successfully, returns 0.
- - If there is an error closing the file, returns EOF.
+#### Return Code
+ - **0**: File was closed successfully.
+ - **EOF**: Error occured while closing the file.
 
 ---
 
@@ -42,8 +42,8 @@ Associates a new filename with the given bitfile while closing the old file in s
    - **False** Read/write bits right to left (Least significant bit first).
  - *BITFILE\** **bitfile** - Pointer to exisiting (non-closed) *BITFILE*
 #### Return Value
- - If the file is re-opened successfully, returns a pointer to it.
- - If the file is not opened, then returns NULL.
+ - ***Pointer to BITFILE struct***: New file was opened successfully.
+ - **NULL**: New file was unable to be opened.
 
 ---
 
@@ -52,8 +52,9 @@ Creates a temporary file in update mode (wb+).
 #### Parameters
  - *char\** **nametemplate** - Array to set filename, last 6 characters must be "XXXXXX"
  - *bool* **msb_first** - True = prefer reading left-to-right, False = right-to-left
-#### Return Code
- - Pointer to new BITFILE object
+#### Return Value
+ - ***Pointer to BITFILE struct***: Temp file was created successfully.
+ - **NULL**: Temp file was unable to be created.
 
 ---
 
@@ -66,7 +67,8 @@ Reads data from the given **bitfile** into the array pointed to by **ptr** (Must
  - ***uint64_t*** **number_of_bits**: The number of bits to read.
  - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the input stream.
 #### Return Value
- - The number of bits successfully read from **bitfile**. This should equal **number_of_bits** unless an error or EOF was encountered.
+ - The number of bits successfully read from **bitfile**.
+ - This should equal **number_of_bits** unless an error was encountered.
 
 ---
 
@@ -77,7 +79,8 @@ Writes data from the array pointed to by **ptr** to the given **bitfile**.
  - ***uint64_t*** **number_of_bits**: The number of bits to write.
  - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the output stream.
 #### Return Value
- - The number of bits successfully written to **bitfile**. This should equal **number_of_bits** unless an error was encountered.
+ - The number of bits successfully written to **bitfile**.
+ - This should equal **number_of_bits** unless an error was encountered.
 
 ---
 
@@ -94,7 +97,7 @@ Sets the file position of the stream to the offsets from the whence position (Ac
     - ***SEEK_END*** Start from end of file (Expects negative offsets)
 #### Return Code
  -  **0**: Success
- -  **Other**: Failed to seek to requested position
+ -  ***Nonzero***: Failed to seek to requested position
 
 ---
 
@@ -102,8 +105,8 @@ Sets the file position of the stream to the offsets from the whence position (Ac
 Returns the current bit position of the given bit file.
 #### Parameters
  - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
-#### Return
- - Current bit offset from the start of the given bit file
+#### Return Value
+ - Current offset in bits from the start of the given bit file
 
 ---
 
@@ -120,7 +123,8 @@ Gets the current position of the bit file and writes it to pos.
  - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
  - *bfpos_t\** **pos** - Pointer to position object to set to current bitfile position
 #### Return Code
- - Same as fgetpos
+ - **0**: success
+ - ***Nonzero***: error
 
 ---
 
@@ -131,7 +135,8 @@ Sets the file position of the given bit file to the given position.
  - *BITFILE\** **bitfile** - Pointer to the *BITFILE*
  - *const bfpos_t\** **pos** - Pointer to position object to update current bitfile to
 #### Return Code
- - Same as fsetpos
+ - **0**: success
+ - ***Nonzero***: error
 
 ---
 
@@ -175,20 +180,25 @@ Object representing bit stream
 |***int8_t***|**_bitoffset**|Offset of current bit within byte|
 |***bool***|**_msb**|True if bits will be read left-to-right|
 
+### *struct* **bfpos_t**
+Bit cursor position within a file
+
+|Type|Name|Description|
+|--|--|--|
+|***fpos_t***|**byte**|Byte offset from start of file|
+|***bpos_t***|**bit**|Bit offset from start of byte|
+
 ### **bsize_t**
 Size in bits of a bit file
- - Format String: %**BSIZE_STR**
+ - Format String: "%"**BSIZE_STR**
 
 ### **bpos_t**
 Bit position within a bit file
- - Format String: %**BPOS_STR**
-
-### **bfpos_t** { *fpos_t* byte, *bpos_t* bit }
-Full position within a file
+ - Format String: "%"**BPOS_STR**
 
 ### **byte_t**
 Type used to store raw bytes
- - Format String: %**BYTE_STR**
+ - Format String: "%"**BYTE_STR**
 
 ---
 
@@ -229,5 +239,17 @@ Tests the error indicator for the given stream.
 
  -	int feof(FILE *stream)
 Tests the end-of-file indicator for the given stream.
+
+#### ADD TESTS FOR
+
+- bfreopen
+- tmpbitfile
+- bfseek
+- bftell
+- bfrewind
+- bfgetpos
+- bfsetpos
+- swapendian
+- Above funcs as they're added
 
 ---
