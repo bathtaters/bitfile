@@ -75,6 +75,7 @@ BITFILE* bfopen(const char* filename, const char* access_mode, bool msb_first);
 /* Flushes all buffers and closes the file */
 int bfclose(BITFILE* bitfile);
 /* Associates a new filename with the given bitfile while closing the old file in stream. */
+BITFILE* bfreopen(const char* filename, const char* access_mode, bool msb_first, BITFILE *bitfile);
 /* Creates a temporary file in update mode (wb+).
     - nametemplate must end with "XXXXXX" */
 BITFILE* tmpbitfile(char* nametemplate, bool msb_first);
@@ -82,10 +83,11 @@ BITFILE* tmpbitfile(char* nametemplate, bool msb_first);
 
 /* --- READ/WRITE FUNCTIONS --- */
 
-/* Reads data from the given file into the array pointed to by ptr
-    - save_to_ptr size must be at least bitCount/8 */
-uint64_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile);
-
+/* Reads data from the given 'bitfile' into the array pointed to by 'ptr'
+    - ptr must be able to store the number_of_bits */
+bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile);
+/* Writes data from the array pointed to by 'ptr' to the given 'bitfile.' */
+bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile);
 
 /* --- POSITION FUNCTIONS --- */
 
@@ -98,9 +100,9 @@ bpos_t bftell(BITFILE *bitfile);
 /* Sets the position to the beginning of the bit file. */
 void bfrewind(BITFILE *bitfile);
 /* Gets the current position of the bit file and writes it to pos. */
-int bfgetpos(BITFILE *bitfile, bfpos_t *pos);
+int bfgetpos(BITFILE *bitfile, bfpos_t* pos);
 /* Sets the file position of the given bit file to the given position. */
-int bfsetpos(BITFILE *bitfile, const bfpos_t *pos)
+int bfsetpos(BITFILE *bitfile, const bfpos_t* pos);
 
 
 /* -- UTILITY FUNCTIONS -- */

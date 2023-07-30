@@ -59,14 +59,25 @@ Creates a temporary file in update mode (wb+).
 
 ## Read/Write Functions
 
-### *bsize_t* **bfread**(save_to_ptr, number_of_bits, bitfile)
-Reads data from the given file into the array pointed to by ptr (Array size must be at least bitCount/8).
+### *bsize_t* **bfread**(ptr, number_of_bits, bitfile)
+Reads data from the given **bitfile** into the array pointed to by **ptr** (Must be able to store the number_of_bits).
 #### Parameters
- - ***void\**** **save_to_ptr**: Pointer to block of memory to store read bits.
+ - ***void\**** **ptr**: Pointer to block of memory to store read bits.
  - ***uint64_t*** **number_of_bits**: The number of bits to read.
  - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the input stream.
 #### Return Value
  - The number of bits successfully read from **bitfile**. This should equal **number_of_bits** unless an error or EOF was encountered.
+
+---
+
+### *bsize_t* **bfwrite**(ptr, number_of_bits, bitfile)
+Writes data from the array pointed to by **ptr** to the given **bitfile**.
+#### Parameters
+ - ***void\**** **ptr**: Pointer to block of memory to write to file.
+ - ***uint64_t*** **number_of_bits**: The number of bits to write.
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the output stream.
+#### Return Value
+ - The number of bits successfully written to **bitfile**. This should equal **number_of_bits** unless an error was encountered.
 
 ---
 
@@ -197,11 +208,18 @@ make clean # Optional: Remove temp files
 
 ### Add Bit-Version of Functions
 
- -	size_t fwrite(const void *ptr, size_t size, size_t nmemb, FILE *stream)
-Writes data from the array pointed to by ptr to the given stream.
+#### WRITE FUNCS
 
  -	int fflush(FILE *stream)
 Flushes the output buffer of a stream.
+
+ -	void setbuf(FILE *stream, char *buffer)
+Defines how a stream should be buffered.
+
+ -	int setvbuf(FILE *stream, char *buffer, int mode, size_t size)
+Another function to define how a stream should be buffered.
+
+#### ERROR FUNCS
 
  -	void clearerr(FILE *stream)
 Clears the end-of-file and error indicators for the given stream.
@@ -211,11 +229,5 @@ Tests the error indicator for the given stream.
 
  -	int feof(FILE *stream)
 Tests the end-of-file indicator for the given stream.
-
- -	void setbuf(FILE *stream, char *buffer)
-Defines how a stream should be buffered.
-
- -	int setvbuf(FILE *stream, char *buffer, int mode, size_t size)
-Another function to define how a stream should be buffered.
 
 ---

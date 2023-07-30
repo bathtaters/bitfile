@@ -1,7 +1,17 @@
 #include "bitfile.h"
 
-uint8_t getBit(BITFILE* bitfile);
+/* --- INTERNAL MACROS & FUNCTION DEFINITIONS --- */
+
+/* Calculate bit offset within byte based on if counting most significant byte first or not */
+#define MSB_OFFSET(bit, is_msb) (is_msb ? BYTE_LEN - 1 - (bit) : bit)
+/* Calculate bit shift for partial byte writes if counting most significant byte first */
+#define MSB_SHIFT(n) ((BYTE_LEN - (n)) % BYTE_LEN)
+
+int8_t incBitOffset(BITFILE* bitfile);
+void bfgetbit(byte_t* dst, bsize_t offset, BITFILE* bitfile);
+void bfputbit(byte_t src, bsize_t offset, BITFILE* bitfile);
 int getByte(BITFILE* bitfile);
+int writeByte(BITFILE* bitfile, bool inc);
 int alignByte(BITFILE* bitfile);
 void bfreset(BITFILE* bitfile, bool msb_first);
 int copyByteAccessMode(const char* basic_access, char* byte_access);
@@ -31,7 +41,7 @@ int bfclose(BITFILE* bitfile)
     return result;
 }
 
-BITFILE* bfreopen(const char *filename, const char *access_mode, bool msb_first, BITFILE *bitfile)
+BITFILE* bfreopen(const char* filename, const char* access_mode, bool msb_first, BITFILE* bitfile)
 {
     char access[ACCESS_MODE_LEN];
     if (copyByteAccessMode(access_mode, access)) return NULL;
@@ -52,28 +62,78 @@ BITFILE* tmpbitfile(char* nametemplate, bool msb_first)
 
 /* --- READ/WRITE FUNCTIONS --- */
 
-bsize_t bfread(void* save_to_ptr, bsize_t number_of_bits, BITFILE* bitfile)
+bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
     bsize_t readCount = 0;
-    byte_t* result = save_to_ptr;
+    byte_t* output = ptr;
+    byte_t* endptr = output + CEIL_DIV(number_of_bits, BYTE_LEN);
 
-    for (int byteIdx = -1; readCount < number_of_bits; readCount++)
+    output--; /* Fix for initial cycle */
+
+    while (readCount < number_of_bits)
     {
-        /* Increment byte reader & writer -- Zero-out array & quit on EOF */
-        if (alignByte(bitfile))
-        {
-            while (++byteIdx * BYTE_LEN < number_of_bits) result[byteIdx] = 0x0;
-            return readCount;
-        }
-        if (readCount % BYTE_LEN == 0) result[++byteIdx] = 0x0;
+        /* Increment reader & zero-out new output byte -- break on EOF */
+        if (alignByte(bitfile)) break;
+        if (readCount % BYTE_LEN == 0) *(++output) = 0x0;
 
-        /* Read bit by bit into result array */
-        byte_t newBit = getBit(bitfile);
-        if (bitfile->_msb) result[byteIdx] = (result[byteIdx] << 1) | newBit;
-        else result[byteIdx] |= newBit << (readCount % BYTE_LEN);
+        /* Read bit by bit into output array */
+        bfgetbit(output, readCount++, bitfile);
     }
 
+    /* Shift or Zero-out remaining bits */
+    for (int8_t b = readCount % BYTE_LEN; b < BYTE_LEN && b; b++)
+    {
+        if (bitfile->_msb) *output >>= 1;
+        else *output &= ~(0x1 << b);
+    }
+    /* Zero-out remaining bytes */
+    while (++output < endptr) *output = 0x0;
+
     return readCount;
+}
+
+bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
+{
+    bsize_t writeCount = 0;
+    byte_t* input = ptr;
+    byte_t* endptr = input + CEIL_DIV(number_of_bits, BYTE_LEN) - 1;
+
+    int8_t shift = 0; /* Fix for final MSB byte */
+
+    /* Update buffer */
+    if (alignByte(bitfile) == 2) return writeCount; /* Actual error */
+
+    /* Align file byte cursor */
+    if (bitfile->_currbyte == EOF) bitfile->_currbyte = 0x0;
+    else if (fseek(bitfile->_fileobj, -1, SEEK_CUR)) return writeCount;
+
+    while (writeCount < number_of_bits)
+    {
+        /* Flush byte and increment writer */
+        if (bitfile->_bitoffset >= BYTE_LEN)
+        {
+            if (writeByte(bitfile, true)) return writeCount;
+            bitfile->_bitoffset = 0;
+        }
+
+        /* Increment input byte & Add in bit shift to final byte */
+        if (writeCount % BYTE_LEN == 0)
+        {
+            if (writeCount) input++;
+            if (bitfile->_msb && input == endptr)
+            {
+                shift = MSB_SHIFT(number_of_bits - writeCount);
+            }
+        }
+
+        /* Write bit by bit from input array */
+        bfputbit(*input, shift + writeCount++, bitfile);
+    }
+
+    /* Flush final write buffer */
+    if (writeCount && writeByte(bitfile, false)) writeCount -= bitfile->_bitoffset;
+
+    return writeCount;
 }
 
 
@@ -107,28 +167,28 @@ int bfseek(BITFILE* bitfile, bpos_t offset, int whence)
     return 1;
 }
 
-bpos_t bftell(BITFILE *bitfile)
+bpos_t bftell(BITFILE* bitfile)
 {
     return (bpos_t)ftell(bitfile->_fileobj) * (bpos_t)(BYTE_LEN) + bitfile->_bitoffset;
 }
 
-void bfrewind(BITFILE *bitfile)
+void bfrewind(BITFILE* bitfile)
 {
     rewind(bitfile->_fileobj);
     bfreset(bitfile, bitfile->_msb);
 }
 
-int bfgetpos(BITFILE *bitfile, bfpos_t *pos)
+int bfgetpos(BITFILE* bitfile, bfpos_t* pos)
 {
     pos->bit = (bpos_t)bitfile->_bitoffset;
     return fgetpos(bitfile->_fileobj, &pos->byte);
 }
 
-int bfsetpos(BITFILE *bitfile, const bfpos_t *pos)
+int bfsetpos(BITFILE* bitfile, const bfpos_t* pos)
 {
     if (pos->bit < 0 || pos->bit >= BYTE_LEN) return 1;
     bitfile->_bitoffset = (int8_t)pos->bit;
-    return fsetpos(bitfile->_fileobj, pos->byte);
+    return fsetpos(bitfile->_fileobj, &pos->byte);
 }
 
 
@@ -189,17 +249,43 @@ bool isIn(char val, const char* arr, int arr_size)
     return false;
 }
 
-/* Align memory byte to bitoffset */
-int alignByte(BITFILE* bitfile)
+/* Copies the value of bit at bitfile to given offset of dst (Incrementing bit cursor) */
+void bfgetbit(byte_t* dst, bsize_t offset, BITFILE* bitfile)
 {
-    if (bitfile->_bitoffset < 0 || bitfile->_currbyte == EOF) return 2; /* Cannot read */
+    byte_t dstbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_msb);
+    byte_t srcbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_msb);
 
-    while (bitfile->_bitoffset >= BYTE_LEN)
-    {
-        if (getByte(bitfile)) return 1; /* EOF */
-        bitfile->_bitoffset -= BYTE_LEN;
-    }
-    return 0;
+    /* Set dstbit to 1 or 0 to match srcbit */
+    if (bitfile->_currbyte & srcbit) *dst |=  dstbit;
+    else                             *dst &= ~dstbit;
+}
+
+
+/* Copies the value of bit at given offset of src to bitfile (Incrementing bit cursor) */
+void bfputbit(byte_t src, bsize_t offset, BITFILE* bitfile)
+{
+    byte_t srcbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_msb);
+    byte_t dstbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_msb);
+
+    /* Set dstbit to 1 or 0 to match srcbit */
+    if (src & srcbit) bitfile->_currbyte |=  dstbit;
+    else              bitfile->_currbyte &= ~dstbit;
+}
+
+/* Set bitfile parameters to initial values (Doesn't modify _fileobj) */
+void bfreset(BITFILE* bitfile, bool msb_first)
+{
+    bitfile->_currbyte = 0x0;
+    bitfile->_bitoffset = BYTE_LEN; /* Force read on next operation */
+    bitfile->_msb = msb_first;
+}
+
+/* Return the current bit offset with while incrementing */
+int8_t incBitOffset(BITFILE* bitfile)
+{
+    bitfile->_bitoffset += 1;
+    if (!bitfile->_msb) return bitfile->_bitoffset - 1;
+    return BYTE_LEN - bitfile->_bitoffset;
 }
 
 /* Reads next byte of bitfile._fileobj into bitfile._currbyte.
@@ -212,21 +298,36 @@ int getByte(BITFILE* bitfile)
     return nextByte == EOF;
 }
 
-/* Gets the value of a bit offset by bitfile._bitoffset into bitfile._currbyte */
-byte_t getBit(BITFILE* bitfile)
+/* Write byte in buffer to file
+    - 0 on success
+    - EOF on failure to write/inc
+    - 1 on failure after write */
+int writeByte(BITFILE* bitfile, bool inc)
 {
-    int8_t offset = bitfile->_bitoffset++;
-    if (bitfile->_msb) offset = BYTE_LEN - 1 - offset;
+    /* Write buffer to file */
+    bitfile->_currbyte = putc(bitfile->_currbyte, bitfile->_fileobj);
+    if (bitfile->_currbyte == EOF) return EOF;
 
-    return !!(bitfile->_currbyte & (1 << offset));
+    /* Read next byte into buffer */
+    if (inc && getByte(bitfile))
+    {
+        clearerr(bitfile->_fileobj);
+        bitfile->_currbyte = 0x0;
+    }
+    return bitfile->_currbyte == EOF;
 }
 
-/* Set bitfile parameters to initial values (Doesn't modify _fileobj) */
-void bfreset(BITFILE* bitfile, bool msb_first)
+/* Align memory byte to bitoffset */
+int alignByte(BITFILE* bitfile)
 {
-    bitfile->_currbyte = 0x0;
-    bitfile->_bitoffset = BYTE_LEN; /* Force read on next operation */
-    bitfile->_msb = msb_first;
+    if (bitfile->_bitoffset < 0 || bitfile->_currbyte == EOF) return 2; /* Cannot read */
+
+    while (bitfile->_bitoffset >= BYTE_LEN)
+    {
+        bitfile->_bitoffset -= BYTE_LEN;
+        if (getByte(bitfile)) return 1; /* EOF */
+    }
+    return 0;
 }
 
 /* Store access mode w/ appended 'b' in byte_access

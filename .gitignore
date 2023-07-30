@@ -1,7 +1,7 @@
 # Compiled
 *.o
 /bitfile-test
-/test.txt
+/*.txt
 
 # Other
 /.vscode
