@@ -159,8 +159,9 @@ void printbin(const void* bin_data, bsize_t number_of_bits)
 
     for (int j = 0; j < number_of_bits; j++)
     {
-        if (PRINT_BYTE_SPACES && j && j % BYTE_LEN == 0) printf(" ");
-        printf("%c", data_ptr[j / BYTE_LEN] & (0x1 << (j % BYTE_LEN)) ? '1' : '0');
+        if (PRINT_BYTE_SPACES && j % BYTE_LEN == 0 && j) printf(" ");
+        int offset = (number_of_bits - 1 - j) % BYTE_LEN;
+        printf("%c", data_ptr[j / BYTE_LEN] & (0x1 << offset) ? '1' : '0');
     }
 }
 
