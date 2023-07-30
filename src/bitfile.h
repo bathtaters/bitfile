@@ -75,9 +75,9 @@ BITFILE* bfopen(const char* filename, const char* access_mode, bool msb_first);
 /* Flushes all buffers and closes the file */
 int bfclose(BITFILE* bitfile);
 /* Associates a new filename with the given bitfile while closing the old file in stream. */
-BITFILE* bfreopen(const char *filename, const char *access_mode, bool msb_first, BITFILE *bitfile);
-/* Creates a temporary file in update mode (wb+). */
-BITFILE* tmpbitfile(const bool msb_first);
+/* Creates a temporary file in update mode (wb+).
+    - nametemplate must end with "XXXXXX" */
+BITFILE* tmpbitfile(char* nametemplate, bool msb_first);
 
 
 /* --- READ/WRITE FUNCTIONS --- */

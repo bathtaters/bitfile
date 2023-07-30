@@ -47,10 +47,11 @@ Associates a new filename with the given bitfile while closing the old file in s
 
 ---
 
-### BITFILE* tmpbitfile(msb_first);
+### BITFILE* tmpbitfile(nametemplate, msb_first);
 Creates a temporary file in update mode (wb+).
 #### Parameters
- - *const bool* **msb_first** - True = prefer reading left-to-right, False = right-to-left
+ - *char\** **nametemplate** - Array to set filename, last 6 characters must be "XXXXXX"
+ - *bool* **msb_first** - True = prefer reading left-to-right, False = right-to-left
 #### Return Code
  - Pointer to new BITFILE object
 

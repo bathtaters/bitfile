@@ -43,11 +43,10 @@ BITFILE* bfreopen(const char *filename, const char *access_mode, bool msb_first,
     return bitfile;
 }
 
-BITFILE* tmpbitfile(const bool msb_first)
+BITFILE* tmpbitfile(char* nametemplate, bool msb_first)
 {
-    char filename[L_tmpnam];
-    if (!tmpnam(filename)) return NULL;
-    return bfopen(filename, TMP_FILE_ACCESS, msb_first);
+    if (!mkstemp(nametemplate)) return NULL;
+    return bfopen(nametemplate, TMP_FILE_ACCESS, msb_first);
 }
 
 
