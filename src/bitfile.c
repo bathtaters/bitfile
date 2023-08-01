@@ -136,6 +136,16 @@ bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
     return writeCount;
 }
 
+int bfflush(BITFILE* bitfile)
+{
+    return fflush(bitfile->_fileobj);
+}
+
+int setbfbuf(BITFILE* bitfile, char* buffer, int mode, size_t size)
+{
+    if (mode == _IOLBF) return -1; /* Cannot do line buffering of bits */
+    return setvbuf(bitfile->_fileobj, buffer, mode, size);
+}
 
 /* --- POSITION FUNCTIONS --- */
 

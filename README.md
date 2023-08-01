@@ -84,6 +84,29 @@ Writes data from the array pointed to by **ptr** to the given **bitfile**.
 
 ---
 
+### *int* **bfflush**(bitfile)
+Flushes output buffer of the **bitfile** to file
+#### Parameters
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* containing the output stream.
+#### Return Code
+ -  **0**: Success
+ -  ***Nonzero***: Failed to flush buffer
+
+---
+
+### *int* **setbfbuf**(bitfile, buffer, mode, size);
+Define how the **bitfile** should be buffered.
+#### Parameters
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE* to modify.
+ - ***char\**** **buffer**: Pointer to new buffer, or NULL to use internal buffer.
+ - ***int*** **mode**: Buffer type (*_IOFBF* for full buffer or *_IONBF* for no buffer).
+ - ***size_t*** **size**: Size of buffer (Can use *BUFSIZ* for recommended size).
+#### Return Code
+ -  **0**: Success
+ -  ***Nonzero***: Failed to seek to requested position
+
+---
+
 ## Position Functions
 
 ### *int* **bfseek**(bitfile, offset, whence)
@@ -218,19 +241,6 @@ make clean # Optional: Remove temp files
 
 ### Add Bit-Version of Functions
 
-#### WRITE FUNCS
-
- -	int fflush(FILE *stream)
-Flushes the output buffer of a stream.
-
- -	void setbuf(FILE *stream, char *buffer)
-Defines how a stream should be buffered.
-
- -	int setvbuf(FILE *stream, char *buffer, int mode, size_t size)
-Another function to define how a stream should be buffered.
-
-#### ERROR FUNCS
-
  -	void clearerr(FILE *stream)
 Clears the end-of-file and error indicators for the given stream.
 
@@ -244,6 +254,8 @@ Tests the end-of-file indicator for the given stream.
 
 - bfreopen
 - tmpbitfile
+- bfflush
+- setbfbuf
 - bfseek
 - bftell
 - bfrewind

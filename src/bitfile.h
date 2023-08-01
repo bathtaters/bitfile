@@ -88,6 +88,12 @@ BITFILE* tmpbitfile(char* nametemplate, bool msb_first);
 bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile);
 /* Writes data from the array pointed to by 'ptr' to the given 'bitfile.' */
 bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile);
+/* Flushes output buffer of the bitfile to file. */
+int bfflush(BITFILE* bitfile);
+/* Define how the bitfile should be buffered.
+    - buffer should be array of size 'size' (or NULL to use internal buffer)
+    - mode should be _IOFBF (Full buffer) or _IONBF (No buffer) */
+int setbfbuf(BITFILE* bitfile, char* buffer, int mode, size_t size);
 
 /* --- POSITION FUNCTIONS --- */
 
