@@ -11,6 +11,8 @@
 
 int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence);
 int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width], bpos_t offset, int whence);
+int expectError(int code);
+
 
 /* Run all tests */
 int main()
@@ -71,15 +73,7 @@ int main()
     bsize_t g[] = {8,8};
     byte_t grl[][1] = {{0},{0}};
     if (readTest("Missing File", "cancel.txt", false, g, 2, 1, grl, 0, 0) != -1) return 1;
-    if (VERBOSE)
-    {
-        printf("    w/ Errors: 'Test cancelled due to missing file.'\n");
-    }
-    else
-    {
-        perror("  RESULT");
-        printf("  SUCCESS if RESULT = 'No such file or directory'\n");
-    }
+    if (expectError(2)) return 1;
 
     /* WRITE TESTS */
 
@@ -113,9 +107,6 @@ int main()
 
 
 
-
-
-
 /* -- TEST IMPLEMENTATION -- */
 
 
@@ -132,7 +123,7 @@ int readTest(const char* test, const char* filename, bool msbFirst, bsize_t coun
 
     if (bitfile == NULL)
     {
-        if (VERBOSE) printf("  Test cancelled due to missing file.\n");
+        if (VERBOSE) perror("  Test cancelled");
         return -1;
     }
 
@@ -238,6 +229,21 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
     printf("  SUCCESS: %d of %d subtests passed.\n", size, size);
 
     bfclose(bitfile);
+    return 0;
+}
+
+/* Returns 0 if error code == code, else returns 1 */
+int expectError(int code)
+{
+    if (VERBOSE || errno != code) printf("  Expected: ERRx%02d (%s)\n", code, sys_errlist[code]);
+
+    if (errno != code)
+    {
+        printf("  FAILED:   ERRx%02X (%s)\n", errno, sys_errlist[errno]);
+        return 1;
+    }
+    
+    printf("  SUCCESS:  ERRx%02X (%s)\n", errno, sys_errlist[errno]);
     return 0;
 }
 
