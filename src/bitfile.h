@@ -10,6 +10,7 @@ READ BITS by bathtaters
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <errno.h>
 
 
 /* -- LIBRARY OPTIONS -- */
@@ -110,6 +111,14 @@ int bfgetpos(BITFILE *bitfile, bfpos_t* pos);
 /* Sets the file position of the given bit file to the given position. */
 int bfsetpos(BITFILE *bitfile, const bfpos_t* pos);
 
+/* --- ERROR FUNCTIONS --- */
+
+/* Clears the end-of-file and error indicators for the given bitfile. */
+void clearbferr(BITFILE* bitfile);
+/* Returns non-zero if the error indicator is set for the given bitfile. */
+int bferror(BITFILE* bitfile);
+/* Returns non-zero if the end-of-file indicator is set for the given bitfile. */
+int bfeof(BITFILE* bitfile);
 
 /* -- UTILITY FUNCTIONS -- */
 

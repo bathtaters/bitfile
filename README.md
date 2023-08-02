@@ -163,6 +163,36 @@ Sets the file position of the given bit file to the given position.
 
 ---
 
+## Error Functions
+
+### *void* **clearbferr**(bitfile);
+Clears the end-of-file and error indicators for the given **bitfile**.
+#### Parameters
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE*.
+
+---
+
+### *int* **bferror**(bitfile);
+Returns non-zero if the error indicator is set for the given **bitfile**.
+Check errno for error code or perror for error description.
+#### Parameters
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE*.
+#### Return Code
+ -  **0**: Success.
+ -  ***Non-zero***: Error exists on *BITFILE*.
+
+---
+
+### *int* **bfeof**(bitfile);
+Returns non-zero if the end-of-file indicator is set for the given **bitfile**.
+#### Parameters
+ - ***BITFILE\**** **bitfile**: Pointer to the *BITFILE*.
+#### Return Code
+ -  **0**: Success.
+ -  ***Non-zero***: *BITFILE* has reached end of file.
+
+---
+
 ## Utility Functions
 
 ### *void* **swapendian**(**bin_data**, **number_of_bits**)

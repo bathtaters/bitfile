@@ -104,7 +104,7 @@ bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
     if (alignByte(bitfile) == 2) return writeCount; /* Actual error */
 
     /* Align file byte cursor */
-    if (bitfile->_currbyte == EOF) bitfile->_currbyte = 0x0;
+    if (bfeof(bitfile)) clearbferr(bitfile);
     else if (fseek(bitfile->_fileobj, -1, SEEK_CUR)) return writeCount;
 
     while (writeCount < number_of_bits)
@@ -201,6 +201,29 @@ int bfsetpos(BITFILE* bitfile, const bfpos_t* pos)
     return fsetpos(bitfile->_fileobj, &pos->byte);
 }
 
+
+/* --- ERROR FUNCTIONS --- */
+
+int bferror(BITFILE* bitfile)
+{
+    int err = ferror(bitfile->_fileobj);
+    if (err) return err;
+    return bitfile->_bitoffset < 0 ? -1 : err;
+}
+
+int bfeof(BITFILE* bitfile)
+{
+    int eof = feof(bitfile->_fileobj);
+    if (eof) return eof;
+    return bitfile->_currbyte == EOF;
+}
+
+void clearbferr(BITFILE* bitfile)
+{
+    if (bitfile->_bitoffset < 0) bitfile->_bitoffset = 0;
+    if (bitfile->_currbyte == EOF) bitfile->_currbyte = 0;
+    clearerr(bitfile->_fileobj);
+}
 
 
 /* --- UTILITIES --- */
@@ -316,7 +339,7 @@ int writeByte(BITFILE* bitfile, bool inc)
 {
     /* Write buffer to file */
     bitfile->_currbyte = putc(bitfile->_currbyte, bitfile->_fileobj);
-    if (bitfile->_currbyte == EOF) return EOF;
+    if (bfeof(bitfile)) return EOF;
 
     /* Read next byte into buffer */
     if (inc && getByte(bitfile))
@@ -324,13 +347,19 @@ int writeByte(BITFILE* bitfile, bool inc)
         clearerr(bitfile->_fileobj);
         bitfile->_currbyte = 0x0;
     }
-    return bitfile->_currbyte == EOF;
+    return bfeof(bitfile);
 }
 
 /* Align memory byte to bitoffset */
 int alignByte(BITFILE* bitfile)
 {
-    if (bitfile->_bitoffset < 0 || bitfile->_currbyte == EOF) return 2; /* Cannot read */
+    if (bitfile->_bitoffset < 0)
+    {
+        if (errno == 0) errno = ESPIPE;
+        return 2; /* Cannot read */
+    }
+
+    if (bfeof(bitfile)) return 1;
 
     while (bitfile->_bitoffset >= BYTE_LEN)
     {
