@@ -1,4 +1,4 @@
-# bitfile v0.3
+# bitfile v0.4
 C Library to help read & write files at the bit level.
 Extends the binary file read/write operations
 
