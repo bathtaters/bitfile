@@ -233,7 +233,8 @@ void swapendian(void* bin_data, bsize_t number_of_bits)
     byte_t* data_ptr = (byte_t *)bin_data;
 
     int offsetFactor = CEIL_DIV(number_of_bits, BYTE_LEN);
-    int half = offsetFactor / 2 - 1;
+    int half = offsetFactor / 2;
+    offsetFactor--; /* 0-index offsetter */
     
     /* Go through 50% of array and swap all mirrored bytes (a & b) */
     for (int a = 0; a < half; a++)
