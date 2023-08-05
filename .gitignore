@@ -1,6 +1,10 @@
 # Compiled
 *.o
 /bitfile-test
+
+# Test files
+/.print*
+/.test*
 /*.txt
 
 # Other

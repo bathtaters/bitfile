@@ -314,6 +314,7 @@ Compile & run tests:
 make
 make clean # Optional: Remove temp files
 ./bitfile-test
+./testclean.sh # Optional: Clean up temp test files
 ```
 
 <div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
