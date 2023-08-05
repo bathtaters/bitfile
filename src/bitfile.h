@@ -124,6 +124,8 @@ int bfeof(BITFILE* bitfile);
 
 /* Swap endianess of bin_data of length number_of_bits */
 void swapendian(void* bin_data, bsize_t number_of_bits);
+/* Print binary value of bin_data of length number_of_bits to given stream */
+void fprintbin(FILE* stream, const void* bin_data, bsize_t number_of_bits);
 /* Print binary value of bin_data of length number_of_bits */
 void printbin(const void* bin_data, bsize_t number_of_bits);
 

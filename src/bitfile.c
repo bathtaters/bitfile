@@ -246,16 +246,21 @@ void swapendian(void* bin_data, bsize_t number_of_bits)
     }
 }
 
-void printbin(const void* bin_data, bsize_t number_of_bits)
+void fprintbin(FILE* stream, const void* bin_data, bsize_t number_of_bits)
 {
     byte_t* data_ptr = (byte_t *)bin_data;
 
     for (int j = 0; j < number_of_bits; j++)
     {
-        if (PRINT_BYTE_SPACES && j % BYTE_LEN == 0 && j) printf(" ");
+        if (PRINT_BYTE_SPACES && j % BYTE_LEN == 0 && j) fprintf(stream, " ");
         int offset = (number_of_bits - 1 - j) % BYTE_LEN;
-        printf("%c", data_ptr[j / BYTE_LEN] & (0x1 << offset) ? '1' : '0');
+        fprintf(stream, "%c", data_ptr[j / BYTE_LEN] & (0x1 << offset) ? '1' : '0');
     }
+}
+
+void printbin(const void* bin_data, bsize_t number_of_bits)
+{
+    fprintbin(stdout, bin_data, number_of_bits);
 }
 
 

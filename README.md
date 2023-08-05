@@ -35,6 +35,7 @@ For simple usage, copy `bitfile.c` & `bitfile.h` from the `src` directory into y
  1. [Utility Functions](#utility-functions)
     - [`swapendian`](#void-swapendianbin_data-number_of_bits)
     - [`printbin`](#void-printbinbin_data-number_of_bits)
+    - [`fprintbin`](#void-fprintbinf-bin_data-number_of_bits)
 
  1. [Constants & Macros](#constants--macros)
 
@@ -243,6 +244,12 @@ Swap endianess of **bin_data** of length **number_of_bits**.
 
 ### *void* **printbin**(**bin_data**, **number_of_bits**)
 Print binary value of **bin_data** of length **number_of_bits**.
+ - ***void\**** **bin_data**: Pointer to block of binary memory to print.
+ - ***uint64_t*** **number_of_bits**: The size in bits of bin_data.
+
+### *void* **fprintbin**(**stream**, **bin_data**, **number_of_bits**)
+Print binary value of **bin_data** of length **number_of_bits** to given **stream**.
+ - ***FILE\**** **stream**: Stream to print to (ie. stdout).
  - ***void\**** **bin_data**: Pointer to block of binary memory to print.
  - ***uint64_t*** **number_of_bits**: The size in bits of bin_data.
 
