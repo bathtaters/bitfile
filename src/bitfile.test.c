@@ -9,8 +9,16 @@
 #define TEST_FILE_R "test.txt"
 #define TEST_FILE_W "write.txt"
 
+byte_t testtext[] = { 't', 'u', 'v', 'w', 'x', 'y', 'z', 'a', '\2' };
+
+int testCount = 1;
+
 int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence);
 int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width], bpos_t offset, int whence);
+int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected);
+int printTest(byte_t* bin, bsize_t bitcount, const char* expected);
+int swapTest(int size, byte_t* expected);
+int freeprint();
 int expectError(int code);
 
 
@@ -20,8 +28,8 @@ int main()
     /* READ TESTS */
 
     bsize_t a[] = {8,8,8,8};
-    byte_t arm[][1] = {{116}, {117}, {118}, {119}};
-    byte_t arl[][1] = {{116}, {117}, {118}, {119}};
+    byte_t arm[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
+    byte_t arl[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
     if (readTest("Byte", TEST_FILE_R, false, a, 4, 1, arl, 0, 0)) return 1;
     if (readTest("Byte", TEST_FILE_R,  true, a, 4, 1, arm, 0, 0)) return 1;
 
@@ -38,15 +46,15 @@ int main()
     if (readTest("Multi-Byte", TEST_FILE_R,  true, c, 3, 3, crm, 0, 0)) return 1;
 
     bsize_t d[] = {16};
-    byte_t drs[][2] = {{118, 119}};
-    byte_t drc[][2] = {{116, 117}};
-    byte_t dre[][2] = {{117, 118}};
+    byte_t drs[][2] = {{testtext[2], testtext[3]}};
+    byte_t drc[][2] = {{testtext[0], testtext[1]}};
+    byte_t dre[][2] = {{testtext[1], testtext[2]}};
     if (readTest("Seek Set", TEST_FILE_R, false, d, 1, 2, drs, 8 *  2, SEEK_SET)) return 1;
     if (readTest("Seek Cur", TEST_FILE_R, false, d, 1, 2, drc, 8 * -1, SEEK_CUR)) return 1;
     if (readTest("Seek End", TEST_FILE_R, false, d, 1, 2, dre, 8 * -3, SEEK_END)) return 1;
 
     bsize_t e[] = {66};
-    byte_t erl[][9] = {{ 116, 117, 118, 119, 0, 0, 0, 0, 0 }};
+    byte_t erl[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], 0, 0, 0, 0, 0 }};
     if (readTest(">64 bit", TEST_FILE_R, false, e, 1, 9, erl, 0, 0)) return 1;
     if (VERBOSE)
     {
@@ -58,7 +66,7 @@ int main()
     }
 
     bsize_t f[] = {8,8,64,2};
-    byte_t frm[][8] = {{116}, {117}, {118, 119, 0, 0, 0, 0, 0, 0}, {0}};
+    byte_t frm[][8] = {{testtext[0]}, {testtext[1]}, {testtext[2], testtext[3], 0, 0, 0, 0, 0, 0}, {0}};
     if (readTest("Read After EOF", TEST_FILE_R, true, f, 4, 8, frm, 0, 0)) return 1;
     if (VERBOSE)
     {
@@ -75,11 +83,12 @@ int main()
     if (readTest("Missing File", "cancel.txt", false, g, 2, 1, grl, 0, 0) != -1) return 1;
     if (expectError(2)) return 1;
 
+
     /* WRITE TESTS */
 
     bsize_t h[] = {8,8,8,8};
-    byte_t hrm[][1] = {{116}, {117}, {118}, {119}};
-    byte_t hrl[][1] = {{116}, {117}, {118}, {119}};
+    byte_t hrm[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
+    byte_t hrl[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
     if (writeTest("Byte", TEST_FILE_W, false, h, 4, 1, hrl, 0, 0)) return 1;
     if (writeTest("Byte", TEST_FILE_W,  true, h, 4, 1, hrm, 0, 0)) return 1;
 
@@ -96,24 +105,118 @@ int main()
     if (writeTest("Multi-Byte", TEST_FILE_W,  true, j, 3, 3, jrm, 0, 0)) return 1;
 
     bsize_t k[] = {66};
-    byte_t krl[][9] = {{ 116, 117, 118, 119, 120, 121, 122, 123, 2 }};
-    byte_t krm[][9] = {{ 116, 117, 118, 119, 120, 121, 122, 123, 2 }};
+    byte_t krl[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], testtext[4], testtext[5], testtext[6], testtext[7], testtext[8] }};
+    byte_t krm[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], testtext[4], testtext[5], testtext[6], testtext[7], testtext[8] }};
     if (writeTest(">64 bit", TEST_FILE_W, false, k, 1, 9, krl, 0, 0)) return 1;
     if (writeTest(">64 bit", TEST_FILE_W,  true, k, 1, 9, krm, 0, 0)) return 1;
+
+
+    /* FILE OPS */
+
+    printf("%02d) File Operations tests\n", testCount++);
+
+    BITFILE* bf = bfopen(TEST_FILE_R, "r", false);
+    if (checkRead("- File Open", bf, 8, testtext)) return 1;
+    else if (VERBOSE) printf("    SUCCESS: File Open subtest.\n");
+
+    int res = bfclose(bf);
+    if (res || VERBOSE) printf("  - File Close subtest.\n");
+    if (res)
+    {
+        printf("  FAILED: Failed closing test [%d]\n", res ? res : errno);
+        return 1;
+    }
+    else if (VERBOSE) printf("    SUCCESS: File Close subtest.\n");
+
+    char name[15] = ".testXXXXXX";
+    char namesuff[25];
+    bf = tmpbitfile(name, false);
+    if (VERBOSE) printf("  - Temp file subtest.\n");
+    if (sscanf(name, ".test%s", &namesuff[0]) != 1 || namesuff[6] != '\0')
+    {
+        printf("  FAILED: Temp file test failed to create temp name '%s'.\n", name);
+        return 1;
+    }
+    res = (int)bfwrite(&testtext[0], 8, bf);
+    if (res != 8)
+    {
+        printf("  FAILED: To write to temp file: %d of %d bits", res, 8);
+        perror("");
+        return 1;
+    }
+    else if (VERBOSE) printf("    SUCCESS: Temp file subtest.\n");
+
+    if (VERBOSE) printf("  - Re-open file subtest.\n");
+    bf = bfreopen(TEST_FILE_R, "r", false, bf);
+    remove(name);
+    if (checkRead("- File Re-Open", bf, 8, &testtext[0])) return 1;
+    else if (VERBOSE) printf("    SUCCESS: Re-open file subtest.\n");
+
+    res = bfclose(bf);
+    if (res)
+    {
+        printf("  FAILED: Failed closing re-opened file [%d]", res);
+        perror("");
+        return 1;
+    }
+    printf("  SUCCESS: File Op subtests passed.\n");
+
+
+    /* FILE POSITION */
+
+    /* ... TO DO ... */
+
+
+    /* ERROR HANDLING */
+
+    /* ... TO DO ... */
+
+
+
+    /* UTILITIES */
+
+    printf("%02d) Utility tests\n", testCount++);
+
+    if (VERBOSE) printf("  - Print Binary subtest.\n");
+
+    if (printTest((void *)testtext,  4, "0100")) return 1;
+    if (printTest((void *)testtext,  8, "01110100")) return 1;
+    if (printTest((void *)testtext, 12, "01000111 0101")) return 1;
+    if (printTest((void *)testtext, 66, "00011101 01011101 10011101 11011101 00011110 01011110 10011110 01011000 10")) return 1;
+
+    freeprint();
+    if (VERBOSE) printf("    SUCCESS: Print Binary subtest.\n");
+
+
+    if (VERBOSE) printf("  - Swap Endian subtest.\n");
+    byte_t expectarr[8] = { 8, 7, 6, 5, 4, 3, 2, 1 };
+
+    if (swapTest(1, &expectarr[7])) return 1;
+    if (swapTest(2, &expectarr[6])) return 1;
+    if (swapTest(3, &expectarr[5])) return 1;
+    if (swapTest(4, &expectarr[4])) return 1;
+    if (swapTest(8, &expectarr[0])) return 1;
+    if (VERBOSE) printf("    SUCCESS: Swap Endian subtest.\n");
+
+    printf("  SUCCESS: Utility subtests passed.\n");
 
     printf("\nSUCCESS: All tests passed!\n");
     return 0;
 }
 
 
-
 /* -- TEST IMPLEMENTATION -- */
 
 
 void printNumber(byte_t* bin_data, bsize_t bit_width);
+int resetprint();
+int checkprint(const char* str);
+void printspaces(int count);
 int arrcmp(byte_t* a, byte_t* b, size_t size);
 
-int testCount = 1;
+FILE* printstream = NULL;
+char printname[20] = ".printXXXXXX";
+
 
 /* Run a read test on the given file, outputting result */
 int readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence)
@@ -131,32 +234,10 @@ int readTest(const char* test, const char* filename, bool msbFirst, bsize_t coun
 
     for (int i = 0; i < size; i++)
     {
-        size_t resultsize = CEIL_DIV(counts[i], BYTE_LEN);
-        byte_t result[resultsize];
+        char name[4];
+        snprintf(name, sizeof(name), "%02d", i + 1);
 
-        int count = (int)bfread(result, counts[i], bitfile);
-
-        int fails = arrcmp(result, &expected[i][0], resultsize);
-
-        if (VERBOSE || fails)
-        {
-            printf("  %02d [bits: %02d/%02"BSIZE_STR"]: ", i+1, count, counts[i]);
-            printNumber(result, counts[i]);
-
-            printf("          Expected: ");
-            printNumber(expected[i], counts[i]);
-        }
-        else if (count != counts[i])
-        {
-            printf("  Bit-count mismatch: %d of %"BSIZE_STR" read.\n", count, counts[i]);
-        }
-
-        if (fails)
-        {
-            printf("  FAILED: Subtest %d of %d.\n", i+1, size);
-            bfclose(bitfile);
-            return 1;
-        }
+        if (checkRead(name, bitfile, counts[i], expected[i])) return 1;
     }
     printf("  SUCCESS: %d of %d subtests passed.\n", size, size);
 
@@ -199,36 +280,79 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
 
     for (int i = 0; i < size; i++)
     {
-        size_t resultsize = CEIL_DIV(counts[i], BYTE_LEN);
-        byte_t result[resultsize];
+        char name[5];
+        snprintf(name, sizeof(name), "%02dR", i + 1);
 
-        bsize_t count = bfread(result, counts[i], bitfile);
-
-        int fails = arrcmp(result, &data[i][0], resultsize);
-
-        if (VERBOSE || fails)
-        {
-            printf("  %02dR [bits: %02"BSIZE_STR"/%02"BSIZE_STR"]: ", i+1, count, counts[i]);
-            printNumber(result, counts[i]);
-
-            printf("           Expected: ");
-            printNumber(data[i], counts[i]);
-        }
-        else if (count != counts[i])
-        {
-            printf("  Bit-count mismatch: %"BSIZE_STR" of %"BSIZE_STR" read.\n", count, counts[i]);
-        }
-
-        if (fails)
-        {
-            printf("  FAILED: Subtest %d of %d.\n", i+1, size);
-            bfclose(bitfile);
-            return 1;
-        }
+        if (checkRead(name, bitfile, counts[i], data[i])) return 1;
     }
     printf("  SUCCESS: %d of %d subtests passed.\n", size, size);
 
     bfclose(bitfile);
+    return 0;
+}
+
+/* Tests if printing "bin" matches "expected" */
+int printTest(byte_t* bin, bsize_t bitcount, const char* expected)
+{
+    if (resetprint() || printstream == NULL)
+    {
+        freeprint();
+        printf("Error attempting to reset file");
+        return -1;
+    }
+
+    fprintbin(printstream, bin, bitcount);
+
+    if (checkprint(expected))
+    {
+        freeprint();
+
+        printf("      EXPECTED: %s\n", expected);
+        printf("        FAILED: ");
+        fprintbin(stdout, bin, bitcount);
+        printf("\n");
+
+        return 1;
+    }
+    else if (VERBOSE)
+    {
+        printf("      EXPECTED: %s\n", expected);
+        printf("       PRINTED: ");
+        fprintbin(stdout, bin, bitcount);
+        printf("\n");
+    }
+    
+    return 0;
+}
+
+/* Check if swapping array of number from 1-size returns expected array */
+int swapTest(int size, byte_t* expected)
+{
+    byte_t data[size];
+    for (int b = 0; b < size; b++) data[b] = b + 1;
+
+    swapendian(data, size * BYTE_LEN);
+
+    if (arrcmp(data, expected, size))
+    {
+        printf("      EXPECTED [%03d]: ", size);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", expected[b]);
+        printf("\n");
+        printf("        FAILED [%03d]: ", size);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", data[b]);
+        printf("\n");
+        return 1;
+    }
+    else if (VERBOSE)
+    {
+        printf("      EXPECTED [%03d]: ", size);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", expected[b]);
+        printf("\n");
+        printf("       SUCCESS [%03d]: ", size);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", data[b]);
+        printf("\n");
+    }
+
     return 0;
 }
 
@@ -247,8 +371,102 @@ int expectError(int code)
     return 0;
 }
 
-/* Print number as full int, hex:int bytes, binary */
+/* Do a single read on the file, 0 on success, close file on error */
+int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected)
+{
+    size_t bytecount = CEIL_DIV(bitcount, BYTE_LEN);
+    byte_t result[bytecount];
+    for (int i = 0; i < bytecount; i++) result[i] = 0;
+
+    bsize_t rescount = bfread(result, bitcount, bf);
+
+    int fails = arrcmp(result, expected, bytecount);
+
+    if (VERBOSE || fails)
+    {
+        printf("  %s [bits: %06"BSIZE_STR"]: ", name, rescount);
+        printNumber(result, bitcount);
+
+        printspaces(strlen(name));
+        printf("         Expected: ");
+        printNumber(expected, bitcount);
+    }
+    else if (rescount != bitcount)
+    {
+        printf("  Bit-count mismatch: %"BSIZE_STR" of %"BSIZE_STR" read.\n", rescount, bitcount);
+    }
+
+    if (fails)
+    {
+        printf("  FAILED: %s read test.\n", name);
+        bfclose(bf);
+        return 1;
+    }
+
+    return 0;
+}
+
+
+/* Resets print buffer (WARNING: This breaks stdout until checkprint/freeprint is called.) */
+int resetprint()
+{
+    if (printstream == NULL)
+    {
+        if (mkstemp(printname) == -1) return -2;
+
+        printstream = fopen(printname, "w+");
+        return printstream == NULL ? -1 : 0;
+    }
+
+    rewind(printstream);
+    return ftell(printstream) != 0L;
+}
+
+
+/* Check if stdout (Since resetprint was called) matches str */
+int checkprint(const char* str)
+{
+    int size = strlen(str);
+
+    char buff[size + 1];
+    fflush(printstream);
+    rewind(printstream);
+
+    fread(&buff[0], sizeof(char), size, printstream);
+    buff[size] = '\0';
+
+    return strcmp(str, &buff[0]);
+}
+
+/* Free print buffer (Redirect output to stdout) */
+int freeprint()
+{
+    int res = printstream == NULL ? 0 : fclose(printstream);
+
+    if (res)
+    {
+        perror("  ERROR closing temp capture file");
+        remove(printname);
+        printname[0] = '\0';
+        return res;
+    }
+
+    res = printname[0] == '\0' ? 0 : remove(printname);
+    if (res)
+    {
+        printf("  ERROR removing temp capture file (%s)", printname);
+        perror("");
+        return res;
+    }
+
+    printstream = NULL;
+    printname[0] = '\0';
+    return 0;
+}
+
+
 #define BIT64 8
+/* Print number as full int, hex:int bytes, binary */
 void printNumber(byte_t* bin_data, bsize_t bit_width)
 {
     const int byte_width = CEIL_DIV(bit_width, BYTE_LEN);
@@ -265,7 +483,7 @@ void printNumber(byte_t* bin_data, bsize_t bit_width)
     for (int i = 0; i < byte_width; i++) printf(" 0x%02X:%03"BYTE_STR, bin_data[i], bin_data[i]);
     printf(", ");
 
-    printbin(bin_data, bit_width);
+    fprintbin(stdout, bin_data, bit_width);
     printf("\n");
 }
 
@@ -278,4 +496,10 @@ int arrcmp(byte_t* a, byte_t* b, size_t size)
         if (a[i] > b[i]) return 1;
     }
     return 0;
+}
+
+/* Print <count> spaces */
+void printspaces(int count)
+{
+    while (count--) printf(" ");
 }
