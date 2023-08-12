@@ -153,8 +153,12 @@ int bfseek(BITFILE* bitfile, bpos_t offset, int whence)
 {
     fpos_t byte_offset = 0;
 
-    /* Include current bitOffset if seeking from current position */
-    if (whence == SEEK_CUR) offset += bitfile->_bitoffset;
+    /* Include current bitOffset and fix byte offset if seeking from current position */
+    if (whence == SEEK_CUR)
+    {
+        offset += bitfile->_bitoffset;
+        byte_offset--;
+    }
 
     /* Allow bitCount to overflow */
     while (offset >= BYTE_LEN)
@@ -179,7 +183,7 @@ int bfseek(BITFILE* bitfile, bpos_t offset, int whence)
 
 bpos_t bftell(BITFILE* bitfile)
 {
-    return (bpos_t)ftell(bitfile->_fileobj) * (bpos_t)(BYTE_LEN) + bitfile->_bitoffset;
+    return (bpos_t)ftell(bitfile->_fileobj) * (bpos_t)BYTE_LEN + bitfile->_bitoffset - BYTE_LEN;
 }
 
 void bfrewind(BITFILE* bitfile)
@@ -190,8 +194,15 @@ void bfrewind(BITFILE* bitfile)
 
 int bfgetpos(BITFILE* bitfile, bfpos_t* pos)
 {
-    pos->bit = (bpos_t)bitfile->_bitoffset;
-    return fgetpos(bitfile->_fileobj, &pos->byte);
+    int result = fgetpos(bitfile->_fileobj, &pos->byte);
+
+    pos->byte--; /* File cursor is always +1 from bit cursor */
+    pos->bit = bitfile->_bitoffset % BYTE_LEN;
+
+    /* Wrap overflown bits */
+    if (!result && bitfile->_bitoffset >= BYTE_LEN) pos->byte += bitfile->_bitoffset / BYTE_LEN;
+
+    return bitfile->_bitoffset < 0 ? -1 : result;
 }
 
 int bfsetpos(BITFILE* bitfile, const bfpos_t* pos)
