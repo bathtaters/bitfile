@@ -13,8 +13,8 @@ byte_t testtext[] = { 't', 'u', 'v', 'w', 'x', 'y', 'z', 'a', '\2' };
 
 int testCount = 1;
 
-int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence);
-int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width], bpos_t offset, int whence);
+int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width]);
+int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width]);
 int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected);
 int printTest(byte_t* bin, bsize_t bitcount, const char* expected);
 int swapTest(int size, byte_t* expected);
@@ -30,32 +30,24 @@ int main()
     bsize_t a[] = {8,8,8,8};
     byte_t arm[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
     byte_t arl[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
-    if (readTest("Byte", TEST_FILE_R, false, a, 4, 1, arl, 0, 0)) return 1;
-    if (readTest("Byte", TEST_FILE_R,  true, a, 4, 1, arm, 0, 0)) return 1;
+    if (readTest("Byte", TEST_FILE_R, false, a, 4, 1, arl)) return 1;
+    if (readTest("Byte", TEST_FILE_R,  true, a, 4, 1, arm)) return 1;
 
     bsize_t b[] = {6,4,3,6,3,4,5,1};
     byte_t brl[][1] = {{52},{5},{5},{51},{6},{13},{29},{0}};
     byte_t brm[][1] = {{29},{1},{6},{43},{5},{ 9},{27},{1}};
-    if (readTest("Partial Byte", TEST_FILE_R, false, b, 8, 1, brl, 0, 0)) return 1;
-    if (readTest("Partial Byte", TEST_FILE_R,  true, b, 8, 1, brm, 0, 0)) return 1;
+    if (readTest("Partial Byte", TEST_FILE_R, false, b, 8, 1, brl)) return 1;
+    if (readTest("Partial Byte", TEST_FILE_R,  true, b, 8, 1, brm)) return 1;
 
     bsize_t c[] = {12,17,3};
     byte_t crl[][3] = {{116, 5, 0}, {103, 119, 1}, {3, 0, 0}};
     byte_t crm[][3] = {{116, 7, 0}, { 87, 103, 0}, {7, 0, 0}};
-    if (readTest("Multi-Byte", TEST_FILE_R, false, c, 3, 3, crl, 0, 0)) return 1;
-    if (readTest("Multi-Byte", TEST_FILE_R,  true, c, 3, 3, crm, 0, 0)) return 1;
-
-    bsize_t d[] = {16};
-    byte_t drs[][2] = {{testtext[2], testtext[3]}};
-    byte_t drc[][2] = {{testtext[0], testtext[1]}};
-    byte_t dre[][2] = {{testtext[1], testtext[2]}};
-    if (readTest("Seek Set", TEST_FILE_R, false, d, 1, 2, drs, 8 *  2, SEEK_SET)) return 1;
-    if (readTest("Seek Cur", TEST_FILE_R, false, d, 1, 2, drc, 8 * -1, SEEK_CUR)) return 1;
-    if (readTest("Seek End", TEST_FILE_R, false, d, 1, 2, dre, 8 * -3, SEEK_END)) return 1;
+    if (readTest("Multi-Byte", TEST_FILE_R, false, c, 3, 3, crl)) return 1;
+    if (readTest("Multi-Byte", TEST_FILE_R,  true, c, 3, 3, crm)) return 1;
 
     bsize_t e[] = {66};
     byte_t erl[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], 0, 0, 0, 0, 0 }};
-    if (readTest(">64 bit", TEST_FILE_R, false, e, 1, 9, erl, 0, 0)) return 1;
+    if (readTest(">64 bit", TEST_FILE_R, false, e, 1, 9, erl)) return 1;
     if (VERBOSE)
     {
         printf("    w/ Error: '01 [bits: 32/66]'\n");
@@ -67,7 +59,7 @@ int main()
 
     bsize_t f[] = {8,8,64,2};
     byte_t frm[][8] = {{testtext[0]}, {testtext[1]}, {testtext[2], testtext[3], 0, 0, 0, 0, 0, 0}, {0}};
-    if (readTest("Read After EOF", TEST_FILE_R, true, f, 4, 8, frm, 0, 0)) return 1;
+    if (readTest("Read After EOF", TEST_FILE_R, true, f, 4, 8, frm)) return 1;
     if (VERBOSE)
     {
         printf("    w/ Errors: '03 [bits: 16/64]'\n");
@@ -80,7 +72,7 @@ int main()
 
     bsize_t g[] = {8,8};
     byte_t grl[][1] = {{0},{0}};
-    if (readTest("Missing File", "cancel.txt", false, g, 2, 1, grl, 0, 0) != -1) return 1;
+    if (readTest("Missing File", "cancel.txt", false, g, 2, 1, grl) != -1) return 1;
     if (expectError(2)) return 1;
 
 
@@ -89,26 +81,26 @@ int main()
     bsize_t h[] = {8,8,8,8};
     byte_t hrm[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
     byte_t hrl[][1] = {{testtext[0]}, {testtext[1]}, {testtext[2]}, {testtext[3]}};
-    if (writeTest("Byte", TEST_FILE_W, false, h, 4, 1, hrl, 0, 0)) return 1;
-    if (writeTest("Byte", TEST_FILE_W,  true, h, 4, 1, hrm, 0, 0)) return 1;
+    if (writeTest("Byte", TEST_FILE_W, false, h, 4, 1, hrl)) return 1;
+    if (writeTest("Byte", TEST_FILE_W,  true, h, 4, 1, hrm)) return 1;
 
     bsize_t i[] = {6,4,3,6,3,4,5,1};
     byte_t irl[][1] = {{52},{5},{5},{51},{6},{13},{29},{0}};
     byte_t irm[][1] = {{29},{1},{6},{43},{5},{ 9},{27},{1}};
-    if (writeTest("Partial Byte", TEST_FILE_W, false, i, 8, 1, irl, 0, 0)) return 1;
-    if (writeTest("Partial Byte", TEST_FILE_W,  true, i, 8, 1, irm, 0, 0)) return 1;
+    if (writeTest("Partial Byte", TEST_FILE_W, false, i, 8, 1, irl)) return 1;
+    if (writeTest("Partial Byte", TEST_FILE_W,  true, i, 8, 1, irm)) return 1;
 
     bsize_t j[] = {12,17,3};
     byte_t jrl[][3] = {{116, 5, 0}, {103, 119, 1}, {3, 0, 0}};
     byte_t jrm[][3] = {{116, 7, 0}, { 87, 103, 0}, {7, 0, 0}};
-    if (writeTest("Multi-Byte", TEST_FILE_W, false, j, 3, 3, jrl, 0, 0)) return 1;
-    if (writeTest("Multi-Byte", TEST_FILE_W,  true, j, 3, 3, jrm, 0, 0)) return 1;
+    if (writeTest("Multi-Byte", TEST_FILE_W, false, j, 3, 3, jrl)) return 1;
+    if (writeTest("Multi-Byte", TEST_FILE_W,  true, j, 3, 3, jrm)) return 1;
 
     bsize_t k[] = {66};
     byte_t krl[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], testtext[4], testtext[5], testtext[6], testtext[7], testtext[8] }};
     byte_t krm[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], testtext[4], testtext[5], testtext[6], testtext[7], testtext[8] }};
-    if (writeTest(">64 bit", TEST_FILE_W, false, k, 1, 9, krl, 0, 0)) return 1;
-    if (writeTest(">64 bit", TEST_FILE_W,  true, k, 1, 9, krm, 0, 0)) return 1;
+    if (writeTest(">64 bit", TEST_FILE_W, false, k, 1, 9, krl)) return 1;
+    if (writeTest(">64 bit", TEST_FILE_W,  true, k, 1, 9, krm)) return 1;
 
 
     /* FILE OPS */
@@ -219,7 +211,7 @@ char printname[20] = ".printXXXXXX";
 
 
 /* Run a read test on the given file, outputting result */
-int readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width], bpos_t offset, int whence)
+int readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width])
 {
     printf("%02d) %s Test (%s first) - Read File: '%s'\n", testCount++, test, msbFirst ? "MSB" : "LSB", filename);
     BITFILE* bitfile = bfopen(filename, "r", msbFirst);
@@ -229,8 +221,6 @@ int readTest(const char* test, const char* filename, bool msbFirst, bsize_t coun
         if (VERBOSE) perror("  Test cancelled");
         return -1;
     }
-
-    if (offset) bfseek(bitfile, offset, whence);
 
     for (int i = 0; i < size; i++)
     {
@@ -246,7 +236,7 @@ int readTest(const char* test, const char* filename, bool msbFirst, bsize_t coun
 }
 
 /* Run a read test on the given file, outputting result */
-int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width], bpos_t offset, int whence)
+int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width])
 {
     printf("%02d) %s Test (%s first) - Write File: '%s'\n", testCount++, test, msbFirst ? "MSB" : "LSB", filename);
     BITFILE* bitfile = bfopen(filename, "w+", msbFirst);
@@ -256,8 +246,6 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
         if (VERBOSE) printf("  Test cancelled, failed to create file.\n");
         return -1;
     }
-
-    if (offset) bfseek(bitfile, offset, whence);
 
     for (int i = 0; i < size; i++)
     {
@@ -276,7 +264,6 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
     }
 
     bfrewind(bitfile);
-    if (offset) bfseek(bitfile, offset, whence);
 
     for (int i = 0; i < size; i++)
     {
