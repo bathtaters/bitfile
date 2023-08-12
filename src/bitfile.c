@@ -208,8 +208,12 @@ int bfgetpos(BITFILE* bitfile, bfpos_t* pos)
 int bfsetpos(BITFILE* bitfile, const bfpos_t* pos)
 {
     if (pos->bit < 0 || pos->bit >= BYTE_LEN) return 1;
+    
+    int result = fsetpos(bitfile->_fileobj, &pos->byte);
+    if (result) return result;
+
     bitfile->_bitoffset = (int8_t)pos->bit;
-    return fsetpos(bitfile->_fileobj, &pos->byte);
+    return getByte(bitfile);
 }
 
 
