@@ -1,4 +1,4 @@
-# bitfile v0.4
+# bitfile v0.5
 C Library to help read & write files at the bit level.
 Extends the binary file read/write operations
 
@@ -312,9 +312,9 @@ Compile & run tests:
 
 ```bash
 make
-make clean # Optional: Remove temp files
+make clean      # Optional: Remove temp files
 ./bitfile-test
-./testclean.sh # Optional: Clean up temp test files
+./testclean.sh  # Optional: Clean up temp test files
 ```
 
 <div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
@@ -325,6 +325,7 @@ make clean # Optional: Remove temp files
 
 #### Add testing for...
 
+- [ ] bfopen - all modes (r,w,a,+)
 - [ ] bfreopen
 - [ ] tmpbitfile
 - [ ] bfflush
