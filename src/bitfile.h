@@ -44,7 +44,7 @@ typedef uint64_t bsize_t;
 /* Bit position within a bit file */
 typedef int64_t bpos_t;
 /* Format string for bit position within a bit file */
-#define BPOS_STR "lls"
+#define BPOS_STR "lld"
 
 /* Full position within a file */
 typedef struct bfpos_t {
