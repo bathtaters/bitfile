@@ -16,6 +16,7 @@ int testCount = 1;
 int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width]);
 int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width]);
 int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected);
+int checkPosition(const char* name, BITFILE* bitfile, fpos_t expectedByte, uint8_t expectedBit, int priorReturnVal);
 int printTest(byte_t* bin, bsize_t bitcount, const char* expected);
 int swapTest(int size, byte_t* expected);
 int freeprint();
@@ -156,7 +157,80 @@ int main()
 
     /* FILE POSITION */
 
-    /* ... TO DO ... */
+    printf("%02d) Position tests\n", testCount++);
+
+    bf = bfopen(TEST_FILE_R, "r", false);
+
+    if (VERBOSE) printf("  - bftell subtest.\n");
+    bpos_t offset = bftell(bf);
+    bpos_t exp = 0;
+    if (offset != exp)
+    {
+        printf("    Initial    -- EXPECTED: %03"BPOS_STR",  FAILED: %03"BPOS_STR"\n",exp,offset);
+        return 1;
+    }
+    else if (VERBOSE) printf("    Initial    -- EXPECTED: %03"BPOS_STR", SUCCESS: %03"BPOS_STR"\n",exp,offset);
+
+    bfseek(bf, 12, SEEK_CUR);
+    offset = bftell(bf);
+    exp = 12;
+    if (offset != exp)
+    {
+        printf("    Offset     -- EXPECTED: %03"BPOS_STR",  FAILED: %03"BPOS_STR"\n",exp,offset);
+        return 1;
+    }
+    else if (VERBOSE) printf("    Offset     -- EXPECTED: %03"BPOS_STR", SUCCESS: %03"BPOS_STR"\n",exp,offset);
+
+
+    if (VERBOSE) printf("  - bfgetpos subtest.\n");
+    if (checkPosition("Offset: 12", bf, 1, 4, 0)) return 1;
+    res = bfseek(bf, 6, SEEK_CUR);
+    if (checkPosition("Offset: 18", bf, 2, 2, res)) return 1;
+
+
+    if (VERBOSE) printf("  - bfsetpos subtest.\n");
+    bfpos_t pos = {0, 3};
+    res = bfsetpos(bf, &pos);
+    if (checkPosition("Bit only", bf, 0, 3, res)) return 1;
+
+    pos.byte = 3;
+    pos.bit = 6;
+    res = bfsetpos(bf, &pos);
+    if (checkPosition("Bit+Byte", bf, 3, 6, res)) return 1;
+
+    pos.byte = 12;
+    pos.bit = 23;
+    res = bfsetpos(bf, &pos);
+    if (checkPosition("Past EOF", bf, 3, 6, res != 1)) return 1;
+
+
+    if (VERBOSE) printf("  - bfseek subtest.\n");
+    res = bfseek(bf, 10, SEEK_SET);
+    if (checkPosition("Seek Set", bf, 1, 2, res)) return 1;
+
+    res = bfseek(bf, 6, SEEK_CUR);
+    if (checkPosition("Seek Cur", bf, 2, 0, res)) return 1;
+
+    res = bfseek(bf, -2, SEEK_END);
+    if (checkPosition("Seek End", bf, 3, 6, res)) return 1;
+
+    res = bfseek(bf, 22, SEEK_CUR);
+    if (checkPosition("Seek EOF", bf, 5, 0, res != 1)) return 1;
+
+
+    if (VERBOSE) printf("  - bfrewind subtest.\n");
+    bfrewind(bf);
+    if (checkPosition("Rewind", bf, 0, 0, 0)) return 1;
+    
+    res = bfclose(bf);
+    if (res)
+    {
+        printf("  FAILED: Failed closing position test file [%d]", res);
+        perror("");
+        return 1;
+    }
+    printf("  SUCCESS: Position subtests passed.\n");
+
 
 
     /* ERROR HANDLING */
@@ -275,6 +349,30 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
     printf("  SUCCESS: %d of %d subtests passed.\n", size, size);
 
     bfclose(bitfile);
+    return 0;
+}
+
+/* Tests if file is at expected position */
+int checkPosition(const char* name, BITFILE* bitfile, fpos_t expectedByte, uint8_t expectedBit, int priorReturnVal)
+{
+    bfpos_t position;
+    int result = bfgetpos(bitfile, &position);
+    bool failed = priorReturnVal || result || expectedByte != position.byte || expectedBit != position.bit;
+
+    if (failed || VERBOSE) printf("    %-10s -- EXPECTED: %03lld:%u, ", name, expectedByte, expectedBit);
+
+    if (failed)
+    {
+        printf("FAILED: %03lld:%u [%d]", position.byte, position.bit, result);
+        if (priorReturnVal) printf(" -- Operation Error <%d>",priorReturnVal);
+        printf("\n  FAILED: Position subtests\n");
+
+        result = bfclose(bitfile);
+        if (result) perror("    Error Closing File");
+        return 1;
+    }
+
+    if (VERBOSE) printf("SUCCESS: %03lld:%u\n", position.byte, position.bit);
     return 0;
 }
 
