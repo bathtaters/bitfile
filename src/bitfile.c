@@ -3,7 +3,7 @@
 /* --- INTERNAL MACROS & FUNCTION DEFINITIONS --- */
 
 /* Calculate bit offset within byte based on if counting most significant byte first or not */
-#define MSB_OFFSET(bit, is_msb) (is_msb ? BYTE_LEN - 1 - (bit) : bit)
+#define MSB_OFFSET(bit, flags) (flags & BF_FLAG_MSB ? BYTE_LEN - 1 - (bit) : bit)
 /* Calculate bit shift for partial byte writes if counting most significant byte first */
 #define MSB_SHIFT(n) ((BYTE_LEN - (n)) % BYTE_LEN)
 
@@ -14,7 +14,7 @@ int getByte(BITFILE* bitfile);
 int writeByte(BITFILE* bitfile, bool inc);
 int alignByte(BITFILE* bitfile);
 void bfreset(BITFILE* bitfile, bool msb_first);
-int copyByteAccessMode(const char* basic_access, char* byte_access);
+uint8_t copyByteAccessMode(const char* basic_access, char* byte_access);
 
 
 /* --- OPEN/CLOSE FUNCTIONS --- */
@@ -22,13 +22,15 @@ int copyByteAccessMode(const char* basic_access, char* byte_access);
 BITFILE* bfopen(const char* filename, const char* access_mode, bool msb_first)
 {
     char access[ACCESS_MODE_LEN];
-    if (copyByteAccessMode(access_mode, access)) return NULL;
+    uint8_t flags = copyByteAccessMode(access_mode, access);
+    if (flags & BF_FLAG_ERR) return NULL;
 
     FILE* fileobj = fopen(filename, access);
     if (fileobj == NULL) return NULL;
 
     BITFILE* bitfile = malloc(sizeof(BITFILE));
 
+    bitfile->_flags = flags;
     bitfile->_fileobj = fileobj;
     bfreset(bitfile, msb_first);
     return bitfile;
@@ -44,7 +46,8 @@ int bfclose(BITFILE* bitfile)
 BITFILE* bfreopen(const char* filename, const char* access_mode, bool msb_first, BITFILE* bitfile)
 {
     char access[ACCESS_MODE_LEN];
-    if (copyByteAccessMode(access_mode, access)) return NULL;
+    bitfile->_flags = copyByteAccessMode(access_mode, access);
+    if (bitfile->_flags & BF_FLAG_ERR) return NULL;
 
     bitfile->_fileobj = freopen(filename, access, bitfile->_fileobj);
     if (bitfile->_fileobj == NULL) return NULL;
@@ -64,6 +67,12 @@ BITFILE* tmpbitfile(char* nametemplate, bool msb_first)
 
 bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
+    if (!(bitfile->_flags & BF_FLAG_READ))
+    {
+        errno = EBADF;
+        return 0;
+    }
+
     bsize_t readCount = 0;
     byte_t* output = ptr;
     byte_t* endptr = output + CEIL_DIV(number_of_bits, BYTE_LEN);
@@ -83,7 +92,7 @@ bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
     /* Shift or Zero-out remaining bits */
     for (int8_t b = readCount % BYTE_LEN; b < BYTE_LEN && b; b++)
     {
-        if (bitfile->_msb) *output >>= 1;
+        if (bitfile->_flags & BF_FLAG_MSB) *output >>= 1;
         else *output &= ~(0x1 << b);
     }
     /* Zero-out remaining bytes */
@@ -94,6 +103,12 @@ bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 
 bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
+    if (!(bitfile->_flags & BF_FLAG_WRITE))
+    {
+        errno = EBADF;
+        return 0;
+    }
+
     bsize_t writeCount = 0;
     byte_t* input = ptr;
     byte_t* endptr = input + CEIL_DIV(number_of_bits, BYTE_LEN) - 1;
@@ -120,7 +135,7 @@ bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
         if (writeCount % BYTE_LEN == 0)
         {
             if (writeCount) input++;
-            if (bitfile->_msb && input == endptr)
+            if (bitfile->_flags & BF_FLAG_MSB && input == endptr)
             {
                 shift = MSB_SHIFT(number_of_bits - writeCount);
             }
@@ -189,7 +204,7 @@ bpos_t bftell(BITFILE* bitfile)
 void bfrewind(BITFILE* bitfile)
 {
     rewind(bitfile->_fileobj);
-    bfreset(bitfile, bitfile->_msb);
+    bfreset(bitfile, bitfile->_flags & BF_FLAG_MSB);
 }
 
 int bfgetpos(BITFILE* bitfile, bfpos_t* pos)
@@ -223,6 +238,7 @@ int bferror(BITFILE* bitfile)
 {
     int err = ferror(bitfile->_fileobj);
     if (err) return err;
+    if (bitfile->_flags & BF_FLAG_ERR) return BF_FLAG_ERR;
     return bitfile->_bitoffset < 0 ? -1 : err;
 }
 
@@ -237,6 +253,7 @@ void clearbferr(BITFILE* bitfile)
 {
     if (bitfile->_bitoffset < 0) bitfile->_bitoffset = 0;
     if (bitfile->_currbyte == EOF) bitfile->_currbyte = 0;
+    bitfile->_flags &= ~BF_FLAG_ERR;
     clearerr(bitfile->_fileobj);
 }
 
@@ -306,8 +323,8 @@ bool isIn(char val, const char* arr, int arr_size)
 /* Copies the value of bit at bitfile to given offset of dst (Incrementing bit cursor) */
 void bfgetbit(byte_t* dst, bsize_t offset, BITFILE* bitfile)
 {
-    byte_t dstbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_msb);
-    byte_t srcbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_msb);
+    byte_t dstbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_flags);
+    byte_t srcbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_flags);
 
     /* Set dstbit to 1 or 0 to match srcbit */
     if (bitfile->_currbyte & srcbit) *dst |=  dstbit;
@@ -318,8 +335,8 @@ void bfgetbit(byte_t* dst, bsize_t offset, BITFILE* bitfile)
 /* Copies the value of bit at given offset of src to bitfile (Incrementing bit cursor) */
 void bfputbit(byte_t src, bsize_t offset, BITFILE* bitfile)
 {
-    byte_t srcbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_msb);
-    byte_t dstbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_msb);
+    byte_t srcbit = 0x1 << MSB_OFFSET(offset % BYTE_LEN,     bitfile->_flags);
+    byte_t dstbit = 0x1 << MSB_OFFSET(bitfile->_bitoffset++, bitfile->_flags);
 
     /* Set dstbit to 1 or 0 to match srcbit */
     if (src & srcbit) bitfile->_currbyte |=  dstbit;
@@ -331,15 +348,16 @@ void bfreset(BITFILE* bitfile, bool msb_first)
 {
     bitfile->_currbyte = 0x0;
     bitfile->_bitoffset = BYTE_LEN; /* Force read on next operation */
-    bitfile->_msb = msb_first;
+    if (msb_first) bitfile->_flags |= BF_FLAG_MSB;
+    else bitfile->_flags &= ~(uint8_t)BF_FLAG_MSB;
 }
 
 /* Return the current bit offset with while incrementing */
 int8_t incBitOffset(BITFILE* bitfile)
 {
     bitfile->_bitoffset += 1;
-    if (!bitfile->_msb) return bitfile->_bitoffset - 1;
-    return BYTE_LEN - bitfile->_bitoffset;
+    if (bitfile->_flags & BF_FLAG_MSB) return BYTE_LEN - bitfile->_bitoffset;
+    return bitfile->_bitoffset - 1;
 }
 
 /* Reads next byte of bitfile._fileobj into bitfile._currbyte.
@@ -392,31 +410,49 @@ int alignByte(BITFILE* bitfile)
 
 /* Store access mode w/ appended 'b' in byte_access
     - Expects: r,w,a,r+,w+,a+,rb,wb,ab,rb+,wb+,ab+,r+b,w+b,a+b
-    - Success: return 0
+    - Success: return appropriate read/write flags
     - Invalid string: return 1 */
-int copyByteAccessMode(const char* basic_access, char* byte_access)
+uint8_t copyByteAccessMode(const char* basic_access, char* byte_access)
 {
     int len = strlen(basic_access);
     if (len < 1 || len > VALID_ACCESS_CHARS_OUTER_SZ)
     {
         fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
-        return 1;
+        return BF_FLAG_ERR;
     }
 
+    uint8_t flags = 0;
     bool has_b = false;
     for (int i = 0; i < len; i++)
     {
         if (!isIn(basic_access[i], valid_access_chars[i], VALID_ACCESS_CHARS_INNER_SZ))
         {
             fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
-            return 1;
+            return BF_FLAG_ERR | flags;
         }
 
-        if (basic_access[i] == 'b') has_b = true;
+        switch (basic_access[i])
+        {
+            case '+':
+                flags |= BF_FLAG_WRITE;
+            case 'r':
+                flags |= BF_FLAG_READ;
+                break;
+
+            case 'a':
+            case 'w':
+                flags |= BF_FLAG_WRITE;
+                break;
+
+            case 'b':
+                has_b = true;
+                break;
+        }
+
         byte_access[i] = basic_access[i];
     }
 
     if (!has_b) byte_access[len++] = 'b';
     byte_access[len] = '\0';
-    return 0;
+    return flags;
 }

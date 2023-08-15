@@ -264,6 +264,10 @@ Print binary value of **bin_data** of length **number_of_bits** to given **strea
  - **BYTE_LEN**: Length of 1 byte in bits (8).
  - **ACCESS_MODE_LEN**: Max size of file access_mode (+ 1 for terminating char).
  - **TMP_FILE_ACCESS**: Access mode for temp file (*"wb+"*).
+ - **BF_FLAG_READ**: Flag bit representing if file is readable
+ - **BF_FLAG_WRITE**: Flag bit representing if file is writable
+ - **BF_FLAG_MSB**: Flag bit representing if bits are read from left to right
+ - **BF_FLAG_ERR**: Flag bit representing error
 
 <div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
 
@@ -280,7 +284,7 @@ Object representing bit stream
 |***FILE***|**_fileobj**|File object to read from|
 |***int***|**_curbyte**|Current byte being read (or EOF)|
 |***int8_t***|**_bitoffset**|Offset of current bit within byte|
-|***bool***|**_msb**|True if bits will be read left-to-right|
+|***bool***|**_flags**|Flags containing bit order, and if file is readable/writable|
 
 ### *struct* **bfpos_t**
 Bit cursor position within a file
@@ -325,11 +329,7 @@ make clean      # Optional: Remove temp files
 
 #### Add testing for...
 
-- [ ] bfopen - all modes (r,w,a,+)
-- [ ] bfreopen
-- [ ] tmpbitfile
-- [ ] bfflush
-- [ ] setbfbuf
+- [ ] all modes (r,w,a,+)
 - [ ] bferror
 - [ ] bfeof
 - [ ] clearbferr

@@ -29,6 +29,15 @@ READ BITS by bathtaters
 /* x / y rounded up to nearest whole number (Expects integer x & y) */
 #define CEIL_DIV(x,y) (1 + (((x) - 1) / (y)))
 
+/* Flag bit representing if file is readable */
+#define BF_FLAG_READ  0x1
+/* Flag bit representing if file is writable */
+#define BF_FLAG_WRITE 0x2
+/* Flag bit representing if bits are read from left to right */
+#define BF_FLAG_MSB 0x4
+/* Flag bit representing error */
+#define BF_FLAG_ERR 0x80
+
 /* -- DATA TYPES -- */
 
 /* Type used to store raw byte */
@@ -61,8 +70,8 @@ typedef struct BITFILE {
     int _currbyte;
     /* Current bit offset within this.byte */
     int8_t _bitoffset;
-    /* Read starting from left (true) or right (false) */
-    bool _msb;
+    /* Flag descriptors for bit file */
+    uint8_t _flags;
 } BITFILE;
 
 
