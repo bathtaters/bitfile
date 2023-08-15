@@ -296,15 +296,15 @@ Bit cursor position within a file
 
 ### **bsize_t**
 Size in bits of a bit file
- - Format String: "%"**BSIZE_STR**
+ - Format String: "%"**BSIZE_T_STR**
 
 ### **bpos_t**
 Bit position within a bit file
- - Format String: "%"**BPOS_STR**
+ - Format String: "%"**BPOS_T_STR**
 
 ### **byte_t**
 Type used to store raw bytes
- - Format String: "%"**BYTE_STR**
+ - Format String: "%"**BYTE_T_STR**
 
 <div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
 

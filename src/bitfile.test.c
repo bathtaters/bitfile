@@ -166,20 +166,20 @@ int main()
     bpos_t exp = 0;
     if (offset != exp)
     {
-        printf("    Initial    -- EXPECTED: %03"BPOS_STR",  FAILED: %03"BPOS_STR"\n",exp,offset);
+        printf("    Initial    -- EXPECTED: %03"BPOS_T_STR",  FAILED: %03"BPOS_T_STR"\n",exp,offset);
         return 1;
     }
-    else if (VERBOSE) printf("    Initial    -- EXPECTED: %03"BPOS_STR", SUCCESS: %03"BPOS_STR"\n",exp,offset);
+    else if (VERBOSE) printf("    Initial    -- EXPECTED: %03"BPOS_T_STR", SUCCESS: %03"BPOS_T_STR"\n",exp,offset);
 
     bfseek(bf, 12, SEEK_CUR);
     offset = bftell(bf);
     exp = 12;
     if (offset != exp)
     {
-        printf("    Offset     -- EXPECTED: %03"BPOS_STR",  FAILED: %03"BPOS_STR"\n",exp,offset);
+        printf("    Offset     -- EXPECTED: %03"BPOS_T_STR",  FAILED: %03"BPOS_T_STR"\n",exp,offset);
         return 1;
     }
-    else if (VERBOSE) printf("    Offset     -- EXPECTED: %03"BPOS_STR", SUCCESS: %03"BPOS_STR"\n",exp,offset);
+    else if (VERBOSE) printf("    Offset     -- EXPECTED: %03"BPOS_T_STR", SUCCESS: %03"BPOS_T_STR"\n",exp,offset);
 
 
     if (VERBOSE) printf("  - bfgetpos subtest.\n");
@@ -327,12 +327,12 @@ int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t cou
 
         if (count != counts[i])
         {
-            printf("  %02dW [fail: %02"BSIZE_STR"/%02"BSIZE_STR"]: ", i+1, count, counts[i]);
+            printf("  %02dW [fail: %02"BSIZE_T_STR"/%02"BSIZE_T_STR"]: ", i+1, count, counts[i]);
             printNumber(data[i], counts[i]);
         }
         else if (VERBOSE)
         {
-            printf("  %02dW [bits: %02"BSIZE_STR"/%02"BSIZE_STR"]: ", i+1, count, counts[i]);
+            printf("  %02dW [bits: %02"BSIZE_T_STR"/%02"BSIZE_T_STR"]: ", i+1, count, counts[i]);
             printNumber(data[i], counts[i]);
         }
     }
@@ -421,20 +421,20 @@ int swapTest(int size, byte_t* expected)
     if (arrcmp(data, expected, size))
     {
         printf("      EXPECTED [%03d]: ", size);
-        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", expected[b]);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_T_STR, b ? ", " : "", expected[b]);
         printf("\n");
         printf("        FAILED [%03d]: ", size);
-        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", data[b]);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_T_STR, b ? ", " : "", data[b]);
         printf("\n");
         return 1;
     }
     else if (VERBOSE)
     {
         printf("      EXPECTED [%03d]: ", size);
-        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", expected[b]);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_T_STR, b ? ", " : "", expected[b]);
         printf("\n");
         printf("       SUCCESS [%03d]: ", size);
-        for (int b = 0; b < size; b++) printf("%s%"BYTE_STR, b ? ", " : "", data[b]);
+        for (int b = 0; b < size; b++) printf("%s%"BYTE_T_STR, b ? ", " : "", data[b]);
         printf("\n");
     }
 
@@ -469,7 +469,7 @@ int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected)
 
     if (VERBOSE || fails)
     {
-        printf("  %s [bits: %06"BSIZE_STR"]: ", name, rescount);
+        printf("  %s [bits: %06"BSIZE_T_STR"]: ", name, rescount);
         printNumber(result, bitcount);
 
         printspaces(strlen(name));
@@ -478,7 +478,7 @@ int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected)
     }
     else if (rescount != bitcount)
     {
-        printf("  Bit-count mismatch: %"BSIZE_STR" of %"BSIZE_STR" read.\n", rescount, bitcount);
+        printf("  Bit-count mismatch: %"BSIZE_T_STR" of %"BSIZE_T_STR" read.\n", rescount, bitcount);
     }
 
     if (fails)
@@ -565,7 +565,7 @@ void printNumber(byte_t* bin_data, bsize_t bit_width)
     printf("%c%8llu,", byte_width > 8 ? '>' : ' ', num);
 
     /* Print hex value */
-    for (int i = 0; i < byte_width; i++) printf(" 0x%02X:%03"BYTE_STR, bin_data[i], bin_data[i]);
+    for (int i = 0; i < byte_width; i++) printf(" 0x%02X:%03"BYTE_T_STR, bin_data[i], bin_data[i]);
     printf(", ");
 
     fprintbin(stdout, bin_data, bit_width);

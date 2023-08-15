@@ -43,17 +43,17 @@ READ BITS by bathtaters
 /* Type used to store raw byte */
 typedef uint8_t byte_t;
 /* Format string for raw byte */
-#define BYTE_STR "d"
+#define BYTE_T_STR "d"
 
 /* Size in bits of a bit file */
 typedef uint64_t bsize_t;
 /* Format string for size in bits of a bit file */
-#define BSIZE_STR "llu"
+#define BSIZE_T_STR "llu"
 
 /* Bit position within a bit file */
 typedef int64_t bpos_t;
 /* Format string for bit position within a bit file */
-#define BPOS_STR "lld"
+#define BPOS_T_STR "lld"
 
 /* Full position within a file */
 typedef struct bfpos_t {
