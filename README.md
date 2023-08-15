@@ -284,7 +284,7 @@ Object representing bit stream
 |***FILE***|**_fileobj**|File object to read from|
 |***int***|**_curbyte**|Current byte being read (or EOF)|
 |***int8_t***|**_bitoffset**|Offset of current bit within byte|
-|***bool***|**_flags**|Flags containing bit order, and if file is readable/writable|
+|***uint8_t***|**_flags**|Flags describing bit stream|
 
 ### *struct* **bfpos_t**
 Bit cursor position within a file
