@@ -13,7 +13,7 @@ byte_t testtext[] = { 't', 'u', 'v', 'w', 'x', 'y', 'z', 'a', '\2' };
 
 int testCount = 1;
 
-int  readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width]);
+int readTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t expected[size][width]);
 int writeTest(const char* test, const char* filename, bool msbFirst, bsize_t counts[], int size, int width, byte_t data[size][width]);
 int checkRead(char* name, BITFILE *bf, bsize_t bitcount, byte_t* expected);
 int checkPosition(const char* name, BITFILE* bitfile, fpos_t expectedByte, uint8_t expectedBit, int priorReturnVal);
@@ -26,7 +26,7 @@ int expectError(int code);
 /* Run all tests */
 int main()
 {
-    
+
     /* READ TESTS */
 
     bsize_t a[] = {8,8,8,8};
@@ -360,7 +360,67 @@ int main()
 
     /* ERROR HANDLING */
 
-    /* ... TO DO ... */
+    errno = 0;
+    printf("%02d) Error tests\n", testCount++);
+    bf = bfopen(TEST_FILE_R, "r", true);
+    if (bf == NULL)
+    {
+        if (VERBOSE) perror("  ERROR opening test file");
+        return -1;
+    }
+
+    if (VERBOSE) printf("  - No Error subtest.\n");
+    if (bferror(bf) || bfeof(bf))
+    {
+        perror("  FAILED: Error present before error subtest");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: No error present.\n");
+
+    if (VERBOSE) printf("  - BADF Error subtest.\n");
+    bfwrite(&res, 8, bf);
+    if (!bferror(bf) || errno != EBADF)
+    {
+        printf("  FAILED: No BADF error after bad file access <%d>.\n", errno);
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: BADF error present <%d>.\n", errno);
+
+    if (VERBOSE) printf("  - Clear Error subtest.\n");
+    clearbferr(bf);
+    if (bferror(bf))
+    {
+        printf("  FAILED: Error not cleared <%d>.\n", errno);
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Error cleared.\n");
+
+    if (VERBOSE) printf("  - EOF subtest.\n");
+    char buff[255];
+    bfread(buff, 255 * 8, bf);
+    if (!bfeof(bf))
+    {
+        printf("  FAILED: EOF flag not set [%"BPOS_T_STR"-bit offset].\n", bftell(bf));
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: EOF flag set.\n");
+
+    if (VERBOSE) printf("  - Clear EOF subtest.\n");
+    clearbferr(bf);
+    if (bfeof(bf))
+    {
+        printf("  FAILED: EOF flag not cleared.\n");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: EOF flag cleared.\n");
+
+    bfclose(bf);
+    printf("  SUCCESS: Error subtests passed.\n");
 
 
 
@@ -417,7 +477,7 @@ int readTest(const char* test, const char* filename, bool msbFirst, bsize_t coun
 
     if (bitfile == NULL)
     {
-        if (VERBOSE) perror("  Test cancelled");
+        if (VERBOSE) perror("  ERROR opening test file");
         return -1;
     }
 

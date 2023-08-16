@@ -324,15 +324,3 @@ make clean      # Optional: Remove temp files
 <div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
 
 ---
-
-## To Do
-
-#### Add testing for...
-
-- [ ] bferror
-- [ ] bfeof
-- [ ] clearbferr
-
-<div align="right"><h6><a href="#documentation">Index ^</a></h6></div>
-
----
