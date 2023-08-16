@@ -29,7 +29,6 @@ BITFILE* bfopen(const char* filename, const char* access_mode, bool msb_first)
     if (fileobj == NULL) return NULL;
 
     BITFILE* bitfile = malloc(sizeof(BITFILE));
-
     bitfile->_flags = flags;
     bitfile->_fileobj = fileobj;
     bfreset(bitfile, msb_first);
@@ -69,7 +68,7 @@ bsize_t bfread(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
     if (!(bitfile->_flags & BF_FLAG_READ))
     {
-        errno = EBADF;
+        fread(ptr, 1, 1, bitfile->_fileobj);
         return 0;
     }
 
@@ -105,7 +104,7 @@ bsize_t bfwrite(void* ptr, bsize_t number_of_bits, BITFILE* bitfile)
 {
     if (!(bitfile->_flags & BF_FLAG_WRITE))
     {
-        errno = EBADF;
+        fwrite(ptr, 1, 1, bitfile->_fileobj);
         return 0;
     }
 
@@ -222,7 +221,11 @@ int bfgetpos(BITFILE* bitfile, bfpos_t* pos)
 
 int bfsetpos(BITFILE* bitfile, const bfpos_t* pos)
 {
-    if (pos->bit < 0 || pos->bit >= BYTE_LEN) return 1;
+    if (pos->bit < 0 || pos->bit >= BYTE_LEN)
+    {
+        errno = EINVAL;
+        return 1;
+    }
     
     int result = fsetpos(bitfile->_fileobj, &pos->byte);
     if (result) return result;
@@ -238,8 +241,10 @@ int bferror(BITFILE* bitfile)
 {
     int err = ferror(bitfile->_fileobj);
     if (err) return err;
-    if (bitfile->_flags & BF_FLAG_ERR) return BF_FLAG_ERR;
-    return bitfile->_bitoffset < 0 ? -1 : err;
+    if (bitfile->_flags & BF_FLAG_ERR) return 1;
+    if (bitfile->_bitoffset >= 0) return err;
+    errno = EFAULT;
+    return -1;
 }
 
 int bfeof(BITFILE* bitfile)
@@ -417,7 +422,7 @@ uint8_t copyByteAccessMode(const char* basic_access, char* byte_access)
     int len = strlen(basic_access);
     if (len < 1 || len > VALID_ACCESS_CHARS_OUTER_SZ)
     {
-        fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
+        errno = EINVAL;
         return BF_FLAG_ERR;
     }
 
@@ -427,7 +432,7 @@ uint8_t copyByteAccessMode(const char* basic_access, char* byte_access)
     {
         if (!isIn(basic_access[i], valid_access_chars[i], VALID_ACCESS_CHARS_INNER_SZ))
         {
-            fprintf(stderr, "ERROR: Invalid file access mode: %s\n", basic_access);
+            errno = EINVAL;
             return BF_FLAG_ERR | flags;
         }
 
