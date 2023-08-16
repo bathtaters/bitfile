@@ -26,6 +26,7 @@ int expectError(int code);
 /* Run all tests */
 int main()
 {
+    
     /* READ TESTS */
 
     bsize_t a[] = {8,8,8,8};
@@ -77,6 +78,7 @@ int main()
     if (expectError(2)) return 1;
 
 
+
     /* WRITE TESTS */
 
     bsize_t h[] = {8,8,8,8};
@@ -102,6 +104,7 @@ int main()
     byte_t krm[][9] = {{ testtext[0], testtext[1], testtext[2], testtext[3], testtext[4], testtext[5], testtext[6], testtext[7], testtext[8] }};
     if (writeTest(">64 bit", TEST_FILE_W, false, k, 1, 9, krl)) return 1;
     if (writeTest(">64 bit", TEST_FILE_W,  true, k, 1, 9, krm)) return 1;
+
 
 
     /* FILE OPS */
@@ -153,6 +156,128 @@ int main()
         return 1;
     }
     printf("  SUCCESS: File Op subtests passed.\n");
+
+
+
+    /* FILE MODE */
+
+    printf("%02d) File Mode tests\n", testCount++);
+
+    if (VERBOSE) printf("  - Read mode subtest.\n");
+    bf = bfopen(TEST_FILE_R, "r", false);
+    if (bfread(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to read file in read mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Read file.\n");
+    if (bfwrite(&res, 8, bf) != 0)
+    {
+        printf("  FAILED: Wrote to file in read-only mode.\n");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Prevented file write.\n");
+    bfclose(bf);
+
+    if (VERBOSE) printf("  - Read+Write mode subtest.\n");
+    bf = bfopen(TEST_FILE_W, "r+", false);
+    if (bfwrite(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to write file in read+write mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Wrote file.\n");
+    bfrewind(bf);
+    if (bfread(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to read file in read+write mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Read file.\n");
+    bfclose(bf);
+
+    if (VERBOSE) printf("  - Write mode subtest.\n");
+    bf = bfopen(TEST_FILE_W, "w", false);
+    if (bfwrite(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to write file in write mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Wrote file.\n");
+    if (bfread(&res, 8, bf) != 0)
+    {
+        printf("  FAILED: Read file in write-only mode.\n");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Prevented file read.\n");
+    bfclose(bf);
+
+    if (VERBOSE) printf("  - Write+Read mode subtest.\n");
+    bf = bfopen(TEST_FILE_W, "r+", false);
+    if (bfwrite(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to write file in write+read mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Wrote file.\n");
+    bfrewind(bf);
+    if (bfread(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to read file in write+read mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Read file.\n");
+    bfclose(bf);
+
+    if (VERBOSE) printf("  - Append mode subtest.\n");
+    bf = bfopen(TEST_FILE_W, "a", false);
+    if (checkPosition("Append start", bf, 1, 0, 0)) return 1;
+    if (bfwrite(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to write file in append mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Wrote file.\n");
+    if (bfread(&res, 8, bf) != 0)
+    {
+        printf("  FAILED: Read file in append-only mode.\n");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Prevented file read.\n");
+    bfclose(bf);
+
+    if (VERBOSE) printf("  - Append+Read mode subtest.\n");
+    bf = bfopen(TEST_FILE_W, "a+", false);
+    if (checkPosition("Append+Read start", bf, 2, 0, 0)) return 1;
+    if (bfwrite(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to write file in append+read mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Wrote file.\n");
+    bfrewind(bf);
+    if (bfread(&res, 8, bf) != 8)
+    {
+        perror("  FAILED: Unable to read file in append+read mode");
+        bfclose(bf);
+        return 1;
+    }
+    if (VERBOSE) printf("    SUCCESS: Read file.\n");
+    bfclose(bf);
+
+    printf("  SUCCESS: File Mode subtests passed.\n");
+
 
 
     /* FILE POSITION */
@@ -365,7 +490,7 @@ int checkPosition(const char* name, BITFILE* bitfile, fpos_t expectedByte, uint8
     {
         printf("FAILED: %03lld:%u [%d]", position.byte, position.bit, result);
         if (priorReturnVal) printf(" -- Operation Error <%d>",priorReturnVal);
-        printf("\n  FAILED: Position subtests\n");
+        printf("\n  FAILED: %s subtest.\n", name);
 
         result = bfclose(bitfile);
         if (result) perror("    Error Closing File");

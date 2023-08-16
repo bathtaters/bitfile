@@ -329,7 +329,6 @@ make clean      # Optional: Remove temp files
 
 #### Add testing for...
 
-- [ ] all modes (r,w,a,+)
 - [ ] bferror
 - [ ] bfeof
 - [ ] clearbferr
