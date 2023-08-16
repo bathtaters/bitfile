@@ -1,6 +1,5 @@
-# bitfile v0.5
-C Library to help read & write files at the bit level.
-Extends the binary file read/write operations
+# bitfile v1.0
+C Library modeled after `stdio` to help read & write files at the bit level.
 
 For simple usage, copy `bitfile.c` & `bitfile.h` from the `src` directory into your project.
 
