@@ -288,7 +288,7 @@ void fprintbin(FILE* stream, const void* bin_data, bsize_t number_of_bits)
 {
     byte_t* data_ptr = (byte_t *)bin_data;
 
-    for (int j = 0; j < number_of_bits; j++)
+    for (bsize_t j = 0; j < number_of_bits; j++)
     {
         if (PRINT_BYTE_SPACES && j % BYTE_LEN == 0 && j) fprintf(stream, " ");
         int offset = (number_of_bits - 1 - j) % BYTE_LEN;
